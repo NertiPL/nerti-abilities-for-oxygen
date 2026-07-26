@@ -2,6 +2,10 @@
 
 MCP ability pack for **Oxygen 6.x + Breakdance Elements for Oxygen**, built on the WP Abilities API and Agent Connector for WP.
 
+**[Download the latest release →](https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements/releases/latest)**
+
+Install the `.zip` from the release page, not the green *Code → Download ZIP* button: that one names the folder `…-main`, so WordPress installs it under a different slug and the next update lands as a second copy instead of replacing the first.
+
 It exists because an agent building client-editable pages in Oxygen keeps hitting the same four walls. Every claim below was measured on a live install (Oxygen 6.2.0-beta.2, Breakdance Elements for Oxygen 1.1.0.beta.1, WordPress 7.0.2, PHP 8.3), not taken from documentation.
 
 ## The four walls
@@ -40,7 +44,9 @@ The visibility list ends in `bdox_run_filters('breakdance_builder_elements', …
 
 ## Install
 
-Zip this directory and upload it under **Plugins → Add New → Upload Plugin**, or drop it in `wp-content/plugins/`. Requires `agent-connector-for-wp` and `oxygen`.
+Download the `.zip` from the [latest release](https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements/releases/latest) and upload it under **Plugins → Add New → Upload Plugin**. Requires `agent-connector-for-wp` and `oxygen`.
+
+An agent cannot install this for you: Agent Connector refuses to write `.php` outside its own sandbox, which is the correct behaviour and the one manual step in the whole workflow.
 
 Verify with `bdox/element-visibility`: `mcp_visible_count` should rise by the number of restored elements, and `hidden_from_mcp` should be empty apart from `MissingElement`.
 

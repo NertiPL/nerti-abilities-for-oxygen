@@ -1,8 +1,10 @@
-# Upstream proposal — draft
+# Upstream proposal
 
-Draft of the message to Soflyy (Oxygen / Agent Connector for WP). **Not sent.** Everything here was measured on Oxygen 6.2.0-beta.2 + Breakdance Elements for Oxygen 1.1.0.beta.1 + Agent Connector 1.26.0, WordPress 7.0.2, PHP 8.2.
+What this pack works around, why, and an open offer to Soflyy (Oxygen / Agent Connector for WP) to take any of it upstream.
 
-Suggested target: an issue on `soflyy/agent-connector-for-wp` (the MCP surface) with a cross-link from `soflyy/oxygen-bugs-and-features` for the two renderer bugs. Offer the code under GPL-2.0-or-later, no strings, no attribution required.
+Everything below was measured on **Oxygen 6.2.0-beta.2 + Breakdance Elements for Oxygen 1.1.0.beta.1 + Agent Connector for WP 1.26.0, WordPress 7.0.2, PHP 8.2**, on a clean install. These findings are version-bound; re-run `bdox/setup-report` before treating any of them as current.
+
+The code is GPL-2.0-or-later. Take it in whole or in part, with or without credit. If items 1 to 4 land upstream, most of this pack should disappear, which is the outcome we would prefer.
 
 ---
 
@@ -57,15 +59,6 @@ text-decoration-line: {{ settings.typography.advanced.links.decoration.line }};
 
 without a `join` filter, so an array value compiles to the literal `text-decoration-line:Array` and is silently dropped by the browser. The element-level macro `customTypographyValuesAsCssVariables` does apply `| join(' ')`, so the same value shape is correct in one place and broken in the other. A `| join(' ')` in the global template would make them consistent.
 
-**The code.** The pack is at <REPO-URL>, GPL-2.0-or-later, eight abilities. Take any of it, in whole or in part, with or without credit. If items 1 to 4 land upstream, most of the pack should disappear, which is the outcome we would prefer. The element-default annotations in `abilities/defaults.php` are probably the piece most worth keeping as documentation: they are the questions an agent asks on every build.
+**The code.** The pack is at https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements — GPL-2.0-or-later, eight abilities. Take any of it, in whole or in part, with or without credit. If items 1 to 4 land upstream, most of the pack should disappear, which is the outcome we would prefer. The element-default annotations in `abilities/defaults.php` are probably the piece most worth keeping as documentation: they are the questions an agent asks on every build.
 
 Happy to open separate issues per item if that is easier to triage.
-
----
-
-## Before sending
-
-- [ ] Publish the pack (public repo) and replace `<REPO-URL>`.
-- [ ] Re-run `bdox/setup-report` and paste the exact version numbers from that run; these findings are version-bound.
-- [ ] Re-check items 5 and 6 against the newest Breakdance Elements build — the plugin has updated mid-session before.
-- [ ] Decide whether to split into one issue per item.

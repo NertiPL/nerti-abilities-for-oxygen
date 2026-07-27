@@ -2,6 +2,13 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.6.1 — 2026-07-27
+
+### Fixed
+
+- **"Check again" ignored the cache.** The 12-hour cache meant a freshly published release stayed invisible for up to half a day and the button looked broken. `force-check` now bypasses the cache, which is also what makes a release testable the moment it goes out.
+- **The plugins screen showed no "Enable auto-updates" control.** `update_plugins_github.com` returned `false` when the installed version was already current, which keeps the plugin out of *both* the `response` and the `no_update` bucket — and WordPress only offers the auto-update toggle for plugins it has in one of them. The result read as "updates are not wired up" on a site where they were. The filter now always returns the payload and lets WordPress decide which bucket it belongs in. Visible check: with this version installed, the plugin row on **Plugins** gains an **Enable auto-updates** link, which also proves the whole chain end to end — header read, filter fired, GitHub reached, release parsed.
+
 ## 0.6.0 — 2026-07-27
 
 ### Added

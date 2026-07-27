@@ -105,16 +105,22 @@ function bdox_pack_check_update( $update, array $plugin_data, string $plugin_fil
 		return $update;
 	}
 
-	$release = bdox_pack_latest_release();
+	// "Check again" on the updates screen must mean it. Without this the 12-hour
+	// cache makes a freshly published release invisible for up to half a day,
+	// and the button looks broken.
+	$force = isset( $_GET['force-check'] ) && '' !== $_GET['force-check']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+	$release = bdox_pack_latest_release( $force );
 	if ( null === $release ) {
 		return $update;
 	}
 
-	$installed = (string) ( $plugin_data['Version'] ?? BDOX_PACK_VERSION );
-	if ( ! version_compare( $release['version'], $installed, '>' ) ) {
-		return $update;
-	}
-
+	// Return the payload even when we are already current. WordPress decides
+	// which bucket it belongs in: a newer version goes to `response`, anything
+	// else to `no_update`. Returning false when up to date would keep the
+	// plugin out of BOTH, and a plugin in neither bucket gets no "Enable
+	// auto-updates" control on the plugins screen — which reads as "updates
+	// are not wired up" even though they are.
 	return array(
 		'id'           => 'github.com/' . BDOX_PACK_REPO,
 		'slug'         => dirname( $plugin_file ),

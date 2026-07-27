@@ -2,6 +2,20 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.6.0 — 2026-07-27
+
+### Added
+
+- **Updates now appear in the WordPress plugins list.** The plugin declares an `Update URI` on github.com and answers the `update_plugins_github.com` hook that WordPress 5.8 added for exactly this case. No update-checker library, no cron job, no settings screen, and nothing filtering the global `site_transient_update_plugins` — the usual way a self-hosted updater breaks unrelated plugins. Releases are read from the GitHub API and cached for 12 hours; a failed lookup is cached for 15 minutes so an unreachable repo does not mean an API call on every admin page load. `upgrader_source_selection` normalises the extracted folder name, without which WordPress installs the update as a separate plugin and deactivates the one being updated. The updater file only loads in admin and cron.
+
+### Fixed
+
+- **`bdox/element-defaults` told you to set `--defaultTransition`, which cannot work.** Measured 2026-07-27 on Oxygen 6.2.0-beta.2: `insert-stylesheet` lowercases custom property *names*, so `--defaultTransition` is stored as `--defaulttransition` and every `var(--defaultTransition)` reference resolves to nothing. The import returns `success: true` with no warning, which is what made the advice expensive. The `.bde-container-link` entry now points at the transition shorthand instead, and names the one route that does preserve case.
+
+### Changed
+
+- **`bdox/merge-css-selector` now documents that it is the only way to get `!important` into a selector.** `insert-stylesheet` strips `!important` from every declaration *before* it routes them. Measured with `will-change: transform !important` — an untyped property that falls through to `custom_css` untouched by any typed handler and still loses the `!important`, which places the strip before routing rather than inside it. The compiled `selectors.css` of an entire production site contained zero occurrences. Writing the `custom_css` slot through this ability bypasses that parser and both `!important` and capitalised custom property names survive into the compiled CSS. The description also records that a `custom_css` block compiles to a second rule carrying the same selector, emitted after the typed one, so at equal specificity it wins on order too.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

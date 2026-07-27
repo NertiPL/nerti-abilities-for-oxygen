@@ -88,7 +88,7 @@ function bdox_pack_override_rules(): array {
 		array(
 			'selector'    => '.bde-div',
 			'source'      => 'EssentialElements\\Div',
-			'declaration' => 'display: flex; flex-direction: column; align-items: flex-start; text-align: left; max-width: 100%',
+			'declaration' => 'display: flex; flex-direction: column; align-items: flex-start; text-align: left; max-width: 100%; position: relative; background-size: cover',
 			'breaks'      => 'Every container without its own display becomes a left-aligned flex column, so children stop stretching to full width. Converting plain containers to Div without handling this reflows the whole page.',
 			'fix'         => 'Set the Layout control on each Div (it emits display + flex-direction to the per-element stylesheet, which loads last and wins). For containers that must behave like a plain block, register one custom selector .bde-div { display: block; align-items: initial; text-align: inherit } placed FIRST in the selector list, so project classes still override it.',
 			'must'        => true,
@@ -98,7 +98,7 @@ function bdox_pack_override_rules(): array {
 			'source'      => 'EssentialElements\\WrapperLink',
 			'declaration' => 'display: flex; flex-direction: column; align-items: flex-start; text-decoration: none; transition-property: background-color, border-color, box-shadow, color',
 			'breaks'      => 'Same flex-column trap as Div, plus a 300ms transition on colours that fights a shorter transition set in a class.',
-			'fix'         => 'Same as Div. Set --defaultTransition, or declare the full transition shorthand in the class.',
+			'fix'         => 'Same as Div. Declare the full transition shorthand in the class — that is the reliable route. Do NOT try to set --defaultTransition through insert-stylesheet: measured 2026-07-27 on Oxygen 6.2.0-beta.2, the CSS importer lowercases custom property NAMES, so it stores --defaulttransition and var(--defaultTransition) never resolves. The import reports success, which is what makes it expensive. If you must set a camelCase custom property, write it through bdox/merge-css-selector into the custom_css slot, which bypasses the importer and preserves case.',
 			'must'        => true,
 		),
 		array(

@@ -3,12 +3,13 @@
  * Plugin Name:       Unofficial Abilities for Breakdance Elements for Oxygen
  * Plugin URI:        https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements
  * Description:        MCP ability pack for Oxygen 6.x + Breakdance Elements. Unhides the core elements the built-in Oxygen MCP tools cannot see (Section, Div, Heading, Text, RichText, TextLink, WrapperLink, Icon, Image2, code blocks), and adds what the built-in tools lack: CSS cache regeneration, partial global-settings patching, non-destructive selector merging, editor element visibility, a setup/stale-cache report, and a per-element report of the default CSS you must override for a design to survive.
- * Version:           0.5.0
+ * Version:           0.6.0
  * Requires Plugins:  agent-connector-for-wp, oxygen
  * Requires PHP:      8.1
  * Author:            Nerti
  * Author URI:        https://github.com/NertiPL
  * License:           GPL-2.0-or-later
+ * Update URI:        https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements
  *
  * Agent Connector: Ability Pack
  * Agent Connector Target: breakdance-elements-for-oxygen/plugin.php
@@ -47,7 +48,7 @@ declare( strict_types=1 );
 defined( 'ABSPATH' ) || exit;
 
 define( 'BDOX_PACK_DIR', plugin_dir_path( __FILE__ ) );
-define( 'BDOX_PACK_VERSION', '0.5.0' );
+define( 'BDOX_PACK_VERSION', '0.6.0' );
 
 /**
  * The elements the built-in Oxygen MCP layer hides from agents.
@@ -111,6 +112,12 @@ add_filter( 'oxygen_builder_elements', 'bdox_pack_restore_elements', 20 );
 require_once BDOX_PACK_DIR . 'bootstrap.php';
 
 require_once BDOX_PACK_DIR . 'src/helpers.php';
+
+// Update checks against GitHub Releases. Admin-side only; costs nothing on the
+// front end and never touches the global update transient.
+if ( is_admin() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+	require_once BDOX_PACK_DIR . 'src/updates.php';
+}
 
 foreach ( glob( BDOX_PACK_DIR . 'abilities/*.php' ) ?: array() as $__ability_file ) {
 	require_once $__ability_file;

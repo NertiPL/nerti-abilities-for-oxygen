@@ -48,6 +48,8 @@ Download the `.zip` from the [latest release](https://github.com/NertiPL/unoffic
 
 An agent cannot install this for you: Agent Connector refuses to write `.php` outside its own sandbox, which is the correct behaviour and the one manual step in the whole workflow.
 
+**Updates.** From 0.6.0 onward new releases show up under **Plugins** like any other update, and the one-click update works. The plugin declares an `Update URI` and answers the `update_plugins_github.com` hook WordPress added in 5.8 for self-hosted plugins; it reads the GitHub releases API directly, caches the answer for 12 hours, and never touches the shared update transient. Updating *to* 0.6.0 is still a manual ZIP upload, because the version you have installed does not yet know where to look.
+
 Verify with `bdox/element-visibility`: `mcp_visible_count` should rise by the number of restored elements, and `hidden_from_mcp` should be empty apart from `MissingElement`.
 
 ## Notes for the Agent Connector / Oxygen maintainers

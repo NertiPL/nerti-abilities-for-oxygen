@@ -51,6 +51,25 @@ post-<id>-defaults.css → global-settings.css → selectors.css → post-<id>.c
 
 so `selectors.css` loads before the per-element file. A flat project class `(0,1,0)` therefore loses to a Design-tab value of the same specificity on load order, and the usual escape hatch does not survive the import. The only path that keeps `!important` is `settings.code.stylesheets`, which loads earliest of all.
 
+**5a. Update 2026-07-27 — the strip happens before routing, not inside it.** Issue #80 suggests checking whether `!important` is lost at the same routing step that discards `background-image`. We measured that, and it is not. Probe submitted through `insert-stylesheet`:
+
+```css
+.probe-b { box-shadow:0 1px 2px #000 !important;
+           mix-blend-mode:multiply !important;
+           will-change:transform !important }
+```
+
+`will-change` has no typed control, so it fell through to `custom_css` untouched by any typed handler — and still came back as `will-change:transform`, without the `!important`. A property that no typed handler claims cannot be losing `!important` inside the routing step, so the strip precedes it.
+
+The same probe shows the routing decision is made on the parsed **value**, not on the property name: `box-shadow:0 1px 2px #000` went to the typed `effects.box_shadow` slot, while `box-shadow:none` in an adjacent rule fell through to `custom_css`.
+
+Two further observations worth having:
+
+- The `custom_css` block compiles to a **second rule carrying the same selector**, emitted after the typed rule, so at equal specificity it wins on order. That is currently the only lever an importing agent has over the cascade.
+- The typed background handler **emits properties that were never submitted**: a lone `background-image:linear-gradient(0deg,#101010,#101010)` compiles to that gradient plus `background-size:auto`, `background-position:0px 0px`, `background-repeat:repeat` and `background-attachment:scroll`.
+
+Measured on Oxygen 6.2.0-beta.2 + Elements 1.1.0.beta.1 + Agent Connector 1.26.0, WP 7.0.2, PHP 8.3.31. The whole compiled `selectors.css` of that production site contained zero occurrences of `!important`.
+
 **6. Renderer bug: `text-decoration-line: Array`.** `global-styles/typography/typography.css.twig` prints
 
 ```twig

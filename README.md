@@ -52,6 +52,14 @@ An agent cannot install this for you: Agent Connector refuses to write `.php` ou
 
 Verify with `bdox/element-visibility`: `mcp_visible_count` should rise by the number of restored elements, and `hidden_from_mcp` should be empty apart from `MissingElement`.
 
+**Building a release ZIP.** Build it from the tag, never by zipping the working folder — the 0.6.1 asset was built that way and shipped `.git/` (history, remote, config) inside the plugin, 140 entries where 12 were the plugin:
+
+```
+git archive --format=zip --prefix=unofficial-abilities-for-breakdance-elements/ -o unofficial-abilities-for-breakdance-elements-<version>.zip v<version>
+```
+
+The `--prefix` is what keeps the folder name — and therefore the plugin slug — stable across updates.
+
 ## Notes for the Agent Connector / Oxygen maintainers
 
 Four of the eight abilities exist only to work around gaps that would be better closed upstream, and this pack should shrink if they are:

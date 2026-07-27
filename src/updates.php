@@ -173,11 +173,24 @@ function bdox_pack_fix_update_folder( $source, $remote_source, $upgrader, $extra
 add_filter( 'upgrader_source_selection', 'bdox_pack_fix_update_folder', 10, 4 );
 
 /**
- * Drop the cached release when the user clicks "Check again".
+ * Force one fresh update check after this plugin's own version changes.
+ *
+ * The update that installs a new version runs entirely inside the OLD version's
+ * process, so the `update_plugins` transient it leaves behind was written by the
+ * code being replaced — and WordPress then throttles the next check for an hour.
+ * Measured on 0.6.0 → 0.6.1: the plugin sat in neither the `response` nor the
+ * `no_update` bucket afterwards, so the plugins screen said auto-updates were
+ * unavailable even though the fix for exactly that was already installed.
+ * Comparing the stored version against the running one costs one option read and
+ * fires once per version.
  */
-add_action(
-	'upgrader_process_complete',
-	static function (): void {
-		delete_site_transient( BDOX_PACK_UPDATE_CACHE );
+function bdox_pack_reset_update_cache_on_version_change(): void {
+	if ( get_site_option( 'bdox_pack_installed_version' ) === BDOX_PACK_VERSION ) {
+		return;
 	}
-);
+
+	update_site_option( 'bdox_pack_installed_version', BDOX_PACK_VERSION );
+	delete_site_transient( BDOX_PACK_UPDATE_CACHE );
+	delete_site_transient( 'update_plugins' );
+}
+add_action( 'init', 'bdox_pack_reset_update_cache_on_version_change' );

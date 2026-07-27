@@ -2,6 +2,17 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.6.2 — 2026-07-27
+
+### Fixed
+
+- **The updater was invisible outside wp-admin and cron.** `src/updates.php` loaded behind `is_admin() || DOING_CRON`, so any other context that runs `wp_update_plugins()` — WP-CLI (`wp plugin list`, `wp plugin update`), a host-side updater, a REST-driven flow — refreshed the update transient with `update_plugins_github.com` unregistered. The plugin then fell out of *both* buckets and WordPress reported that auto-updates were unavailable for it. Measured on a live install: in a REST request `has_filter('update_plugins_github.com')` returned false while the same request could reach the GitHub API fine. The file now always loads; it only adds filters.
+- **A version bump left the plugins screen stale for up to an hour.** The update runs inside the *old* version's process, so the `update_plugins` transient it writes comes from the code being replaced, and WordPress then throttles the next check. Measured on 0.6.0 → 0.6.1: with the fixed version installed, the plugin was in neither `response` nor `no_update`, so the screen still claimed auto-updates were unavailable. The pack now stores its own installed version and forces exactly one fresh check when that value changes.
+
+### Changed
+
+- **Release ZIPs are built with `git archive` from the tag.** The 0.6.1 asset was built by zipping the working folder and shipped `.git/` — history, remote and config — inside the plugin: 140 entries of which 12 were the plugin. The command is in the README.
+
 ## 0.6.1 — 2026-07-27
 
 ### Fixed

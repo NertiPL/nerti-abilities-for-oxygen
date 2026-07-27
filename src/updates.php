@@ -75,6 +75,7 @@ function bdox_pack_latest_release( bool $force = false ): ?array {
 					'package'   => $package,
 					'url'       => (string) ( $body['html_url'] ?? '' ),
 					'published' => (string) ( $body['published_at'] ?? '' ),
+					'notes'     => (string) ( $body['body'] ?? '' ),
 				);
 			}
 		}
@@ -148,11 +149,14 @@ add_filter( 'update_plugins_github.com', 'bdox_pack_check_update', 10, 3 );
  * @return string|\WP_Error
  */
 function bdox_pack_fix_update_folder( $source, $remote_source, $upgrader, $extra = array() ) {
-	$plugin = (string) ( $extra['plugin'] ?? '' );
-
-	if ( '' === $plugin || ! str_contains( $plugin, 'unofficial-abilities-for-breakdance-elements' ) ) {
+	// Exact match on our own basename, not a substring: this filter runs for
+	// every plugin and theme upgrade on the site, and a substring test would
+	// also claim an upgrade of any plugin whose slug happens to contain ours.
+	if ( plugin_basename( BDOX_PACK_FILE ) !== (string) ( $extra['plugin'] ?? '' ) ) {
 		return $source;
 	}
+
+	$plugin = (string) $extra['plugin'];
 
 	$desired = trailingslashit( $remote_source ) . dirname( $plugin );
 
@@ -171,6 +175,81 @@ function bdox_pack_fix_update_folder( $source, $remote_source, $upgrader, $extra
 	return trailingslashit( $desired );
 }
 add_filter( 'upgrader_source_selection', 'bdox_pack_fix_update_folder', 10, 4 );
+
+/**
+ * Answer the "View details" / "View version x.y.z details" popup.
+ *
+ * WordPress sends that request to the wordpress.org API, which has never heard
+ * of this plugin, so without this filter the thickbox opens on "An unexpected
+ * error occurred" — right next to the update link, at the exact moment someone
+ * is deciding whether to trust the update. The release notes are already in the
+ * cached payload, so this costs no extra request.
+ *
+ * @param false|object|array $result Result so far (false until someone answers).
+ * @param string             $action API action being performed.
+ * @param object             $args   Request arguments; carries the plugin slug.
+ * @return false|object|array
+ */
+function bdox_pack_plugin_information( $result, string $action, $args ) {
+	if ( 'plugin_information' !== $action || ( $args->slug ?? '' ) !== dirname( plugin_basename( BDOX_PACK_FILE ) ) ) {
+		return $result;
+	}
+
+	$release = bdox_pack_latest_release();
+	if ( null === $release ) {
+		return $result;
+	}
+
+	$data = get_file_data(
+		BDOX_PACK_FILE,
+		array(
+			'name'        => 'Plugin Name',
+			'description' => 'Description',
+			'author'      => 'Author',
+			'requires_php' => 'Requires PHP',
+		)
+	);
+
+	return (object) array(
+		'name'          => $data['name'],
+		'slug'          => $args->slug,
+		'version'       => $release['version'],
+		'author'        => $data['author'],
+		'homepage'      => $release['url'],
+		'requires_php'  => $data['requires_php'],
+		'download_link' => $release['package'],
+		'last_updated'  => $release['published'],
+		'sections'      => array(
+			'description' => wpautop( esc_html( $data['description'] ) ),
+			'changelog'   => bdox_pack_render_notes( (string) ( $release['notes'] ?? '' ) ),
+		),
+	);
+}
+add_filter( 'plugins_api', 'bdox_pack_plugin_information', 10, 3 );
+
+/**
+ * The four bits of Markdown a GitHub release body actually uses, as HTML.
+ *
+ * Not a Markdown parser and not trying to be one: everything is escaped first,
+ * then these four patterns are re-introduced as tags. Anything else stays
+ * visible as written, which is the safe failure for text pulled off a remote API.
+ *
+ * @param string $notes Raw release body.
+ * @return string
+ */
+function bdox_pack_render_notes( string $notes ): string {
+	if ( '' === trim( $notes ) ) {
+		return '';
+	}
+
+	$html = esc_html( $notes );
+	$html = preg_replace( '/^#{1,6}\s*(.+)$/m', '<h4>$1</h4>', $html );
+	$html = preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $html );
+	$html = preg_replace( '/`([^`]+)`/', '<code>$1</code>', $html );
+	$html = preg_replace( '/^[-*]\s+(.+)$/m', '<li>$1</li>', $html );
+
+	return wpautop( $html );
+}
 
 /**
  * Force one fresh update check after this plugin's own version changes.

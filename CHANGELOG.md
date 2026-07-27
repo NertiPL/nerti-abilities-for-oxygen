@@ -2,6 +2,13 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.6.3 — 2026-07-27
+
+### Fixed
+
+- **"View details" opened on an error.** The details thickbox — and the *View version x.y.z details* link that sits right next to the update button — goes to the wordpress.org API, which has never heard of this plugin, so it answered `An unexpected error occurred`. That is the worst possible moment for it: the reader is deciding whether to trust the update. The pack now answers `plugins_api` for its own slug with the plugin header data and the release notes from the payload it already cached, so the popup costs no extra request. The notes go through a deliberately tiny Markdown pass (headings, bold, code, list items) applied *after* escaping, so anything unexpected from the API shows up as text instead of markup.
+- **`upgrader_source_selection` matched by substring.** The filter runs for every plugin and theme upgrade on the site, and `str_contains( $plugin, 'unofficial-abilities-for-breakdance-elements' )` would also claim an upgrade of any plugin whose slug contains this one's. It now compares `plugin_basename()` exactly, against the new `BDOX_PACK_FILE` constant.
+
 ## 0.6.2 — 2026-07-27
 
 ### Fixed

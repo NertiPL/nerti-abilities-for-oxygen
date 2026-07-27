@@ -15,27 +15,30 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-const BDOX_PACK_REPO           = 'NertiPL/unofficial-abilities-for-breakdance-elements';
-const BDOX_PACK_UPDATE_TTL     = 12 * HOUR_IN_SECONDS;
-const BDOX_PACK_UPDATE_CACHE   = 'bdox_pack_latest_release';
+const BDOX_PACK_REPO         = 'NertiPL/unofficial-abilities-for-breakdance-elements';
+const BDOX_PACK_FAILED_LOOKUP = 'bdox_pack_release_lookup_failed';
+const BDOX_PACK_FAILURE_TTL   = 15 * MINUTE_IN_SECONDS;
 
 /**
- * Latest release from the GitHub API, cached.
+ * Latest release from the GitHub API.
  *
- * Cached on failure too, as a short-lived empty marker. Without that, a repo
- * that is unreachable (rate limit, network, renamed) means an API call on every
- * admin page load.
+ * A successful lookup is deliberately NOT cached. WordPress already caches the
+ * answer in its own `update_plugins` transient and only calls this code when it
+ * decides to refresh it — at most hourly on the plugins screen, once a minute on
+ * the updates screen. A second cache stacked on top of that one bought nothing
+ * and cost the only thing that matters here: a release published minutes ago
+ * stayed invisible for up to twelve hours on a site that had already asked for it.
  *
- * @param bool $force Skip the cache.
- * @return array{version:string,package:string,url:string,published:string}|null
+ * A FAILED lookup is still cached, briefly. Failure is the case that is also
+ * slow — unreachable repo, spent rate limit, DNS — and without the marker every
+ * refresh would block a page load on the same timeout.
+ *
+ * @param bool $force Ignore the failure marker and retry now.
+ * @return array{version:string,package:string,url:string,published:string,notes:string}|null
  */
 function bdox_pack_latest_release( bool $force = false ): ?array {
-	if ( ! $force ) {
-		$cached = get_site_transient( BDOX_PACK_UPDATE_CACHE );
-		if ( is_array( $cached ) ) {
-			// An empty array is the cached-failure marker, not a release.
-			return empty( $cached['version'] ) ? null : $cached;
-		}
+	if ( ! $force && get_site_transient( BDOX_PACK_FAILED_LOOKUP ) ) {
+		return null;
 	}
 
 	$response = wp_remote_get(
@@ -81,11 +84,11 @@ function bdox_pack_latest_release( bool $force = false ): ?array {
 		}
 	}
 
-	set_site_transient(
-		BDOX_PACK_UPDATE_CACHE,
-		$release ?? array(),
-		$release ? BDOX_PACK_UPDATE_TTL : 15 * MINUTE_IN_SECONDS
-	);
+	if ( null === $release ) {
+		set_site_transient( BDOX_PACK_FAILED_LOOKUP, 1, BDOX_PACK_FAILURE_TTL );
+	} else {
+		delete_site_transient( BDOX_PACK_FAILED_LOOKUP );
+	}
 
 	return $release;
 }
@@ -106,9 +109,9 @@ function bdox_pack_check_update( $update, array $plugin_data, string $plugin_fil
 		return $update;
 	}
 
-	// "Check again" on the updates screen must mean it. Without this the 12-hour
-	// cache makes a freshly published release invisible for up to half a day,
-	// and the button looks broken.
+	// "Check again" on the updates screen must mean it: retry even inside the
+	// 15-minute window after a failed lookup, which is exactly when someone
+	// reaches for that button.
 	$force = isset( $_GET['force-check'] ) && '' !== $_GET['force-check']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 	$release = bdox_pack_latest_release( $force );
@@ -269,7 +272,7 @@ function bdox_pack_reset_update_cache_on_version_change(): void {
 	}
 
 	update_site_option( 'bdox_pack_installed_version', BDOX_PACK_VERSION );
-	delete_site_transient( BDOX_PACK_UPDATE_CACHE );
+	delete_site_transient( BDOX_PACK_FAILED_LOOKUP );
 	delete_site_transient( 'update_plugins' );
 }
 add_action( 'init', 'bdox_pack_reset_update_cache_on_version_change' );

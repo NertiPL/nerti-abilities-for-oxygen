@@ -2,6 +2,13 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.6.4 — 2026-07-27
+
+### Changed
+
+- **The 12-hour cache on a successful release lookup is gone.** It was a second cache stacked on top of WordPress's own: core already stores the answer in the `update_plugins` transient and only calls this code when *it* decides to refresh — at most hourly on the plugins screen, once a minute on the updates screen. Ours bought nothing on top of that and cost the only thing that matters here. Measured: 0.6.3 was published 14 minutes after a check had run, and the site kept answering `no_update: 0.6.2` from a transient holding a stale release for another 12 hours, on an install that had already asked. A release now shows up on the next check WordPress makes.
+- A *failed* lookup is still cached, for 15 minutes. Failure is the case that is also slow — unreachable repo, spent rate limit, DNS — and without the marker every refresh would block a page load on the same timeout. `force-check` ignores the marker, which is the button someone reaches for in exactly that situation.
+
 ## 0.6.3 — 2026-07-27
 
 ### Fixed

@@ -41,6 +41,7 @@ The visibility list ends in `bdox_run_filters('breakdance_builder_elements', …
 | `bdox/patch-global-settings` | Deep-merges a partial settings tree. Also bypasses the built-in input schema, which omits `background_hover`, `color_hover` and `typography.color_hover` even though the renderer reads them. |
 | `bdox/merge-css-selector` | Merges properties into an existing selector per breakpoint instead of replacing its map. |
 | `bdox/builder-hidden-elements` | Reads/changes which elements the editor panel offers. Saving an empty list does nothing lasting — the builder repopulates the defaults whenever the option is empty — so unhiding stores a non-empty placeholder. |
+| `bdox/set-image` | Makes a media-library image render at a named size, with a `srcset`. Through `edit-post` it cannot: the element resolves `content.image.media.sizes[size].url`, but `media` is schema'd with `additionalProperties: false` and no `sizes`, so the lookup falls through to the 540×540 grey placeholder while the call reports success. Also handles `alt`, which the element reads from the attachment — not from the tree — and which is empty on most uploads. |
 
 ## Install
 

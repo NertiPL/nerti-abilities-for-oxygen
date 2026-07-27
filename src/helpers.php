@@ -124,6 +124,75 @@ function bdox_pack_regenerate_posts( array $ids ): array {
 }
 
 /**
+ * The element tree of a builder post, decoded.
+ *
+ * `_oxygen_data` is not the tree — it is an object whose single key
+ * `tree_json_string` holds the tree as an ENCODED STRING. Decoding one level and
+ * subscripting `['root']` gets null, which is the shape mistake to make once.
+ *
+ * @param int $post_id Post to read.
+ * @return array|null Decoded tree, or null when the post is not built with the builder.
+ */
+function bdox_pack_get_tree( int $post_id ): ?array {
+	$outer = json_decode( (string) get_post_meta( $post_id, '_oxygen_data', true ), true );
+	if ( ! is_array( $outer ) || ! isset( $outer['tree_json_string'] ) ) {
+		return null;
+	}
+
+	$tree = json_decode( (string) $outer['tree_json_string'], true );
+
+	return ( is_array( $tree ) && isset( $tree['root'] ) ) ? $tree : null;
+}
+
+/**
+ * Write a tree back, preserving the wrapper's other keys.
+ *
+ * @param int   $post_id Post to write.
+ * @param array $tree    Full tree, including `root`.
+ * @return void
+ */
+function bdox_pack_save_tree( int $post_id, array $tree ): void {
+	$outer = json_decode( (string) get_post_meta( $post_id, '_oxygen_data', true ), true );
+	$outer = is_array( $outer ) ? $outer : array();
+
+	$outer['tree_json_string'] = wp_json_encode( $tree );
+
+	update_post_meta( $post_id, '_oxygen_data', wp_slash( wp_json_encode( $outer ) ) );
+}
+
+/**
+ * Apply a callback to one node, addressed by id, returning a NEW tree.
+ *
+ * Deliberately not a reference-based finder. A helper built on `function &find`
+ * makes every write land through an alias, and a caller that then inserts into
+ * the returned handle duplicates whole subtrees — measured on a production site
+ * where seventeen pages grew a second copy of a section. Copying is cheap here;
+ * the trees are small.
+ *
+ * @param array    $node    Node to walk (start at the tree's `root`).
+ * @param int      $id      Node id to match.
+ * @param callable $mutator fn(array $node): array
+ * @param bool     $found   Set to true when the id was matched.
+ * @return array
+ */
+function bdox_pack_map_node( array $node, int $id, callable $mutator, bool &$found ): array {
+	if ( isset( $node['id'] ) && (int) $node['id'] === $id ) {
+		$found = true;
+		$node  = $mutator( $node );
+	}
+
+	if ( ! empty( $node['children'] ) && is_array( $node['children'] ) ) {
+		foreach ( $node['children'] as $index => $child ) {
+			if ( is_array( $child ) ) {
+				$node['children'][ $index ] = bdox_pack_map_node( $child, $id, $mutator, $found );
+			}
+		}
+	}
+
+	return $node;
+}
+
+/**
  * Sizes of the compiled CSS files, so a caller can tell a real regeneration
  * from a no-op. A 0-byte variables.css or a missing post-<id>.css is the
  * signature of a stale cache.

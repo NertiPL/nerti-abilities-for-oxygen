@@ -2,6 +2,24 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.7.0 — 2026-07-27
+
+### Added
+
+- **`bdox/set-image`** — point an image element at a media-library attachment so it actually renders, at a named size and with a `srcset`. The built-in path cannot do this. Measured on Oxygen 6.2.0-beta.2: an `OxygenElements\Image` with `from: media_library` and `size: "large"` renders the builder's 540×540 grey placeholder while `edit-post` reports success and reads the data back exactly as written. The element resolves its `src` as `content.image.media.sizes[size].url`, but the MCP schema declares `media` with only `id`, `url`, `alt` and `additionalProperties: false`, so `sizes` can never be written and the lookup falls through to `|default()`. `attributes.srcset` is unreachable the same way, so an API-created image emits no `srcset` at all. This ability fills both maps from WordPress's own attachment metadata, writes them into the tree and recompiles the post CSS.
+
+  Measured end to end on a probe page: before, `src="data:image/svg+xml…"` and one placeholder on the page; after, `src="…-1024x640.png"` with a five-candidate `srcset` and zero placeholders.
+
+  Passing a size the attachment does not have is the one remaining way to get a placeholder, so unknown sizes are rejected with the list of real ones rather than written blindly.
+
+  **`alt` needed its own handling.** The element does *not* render `media.alt` from the tree — its template reads `get_attachment_alt(content.image.media.id)` in `from_media_library` mode, and `content.image.custom_alt` in `custom` mode. An attachment with no `_wp_attachment_image_alt` therefore renders an `<img>` with **no `alt` attribute at all**, which is what the first version of this ability produced. Passing `alt` now switches the element to custom mode, and the response's `alt_mode` says outright when the attachment's own alt is empty.
+
+  Upstream report: [soflyy/agent-connector-for-wp#79](https://github.com/soflyy/agent-connector-for-wp/issues/79).
+
+### Changed
+
+- Two new helpers, `bdox_pack_get_tree()` / `bdox_pack_save_tree()`, plus `bdox_pack_map_node()`. The tree is not `_oxygen_data` — that meta is an object whose single key `tree_json_string` holds the tree as an **encoded string**, so decoding one level and subscripting `['root']` yields null. `bdox_pack_map_node()` is deliberately copy-based rather than a reference finder: a `function &find` helper makes every write land through an alias, and a caller that inserts into the returned handle duplicates whole subtrees — measured on a production site where seventeen pages grew a second copy of a section.
+
 ## 0.6.4 — 2026-07-27
 
 ### Changed

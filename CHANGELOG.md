@@ -2,6 +2,20 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.8.1 — 2026-08-21
+
+### Added
+
+- **`bdox/setup-report` now reports typography as the browser resolves it**, read from the compiled `global-settings.css` instead of the stored settings tree, with a verdict. Two things fail silently when written and neither shows a symptom in the builder:
+  - A Google Font slug is `strtolower(preg_replace('/[^a-zA-Z0-9]+/', '', $family))` (`plugin/fonts/integrations/google-fonts/google-fonts.php:110`) — every non-alphanumeric character is **dropped, not hyphenated**. `gfont-bricolage-grotesque` is therefore accepted, stored, and emitted verbatim as the `font-family`, so the font never loads and every heading falls back to the generic. Measured 2026-08-21 on 6.2.0-beta.5: `--bde-heading-font-family:gfont-bricolage-grotesque` in the compiled file while `set-global-settings` reported success. The correct slug is `gfont-bricolagegrotesque`. A single-word family such as `gfont-inter` resolves fine, which is exactly why the mistake survives — it only bites on multi-word names.
+  - `typography.base_size` takes effect only in the flat `{number, unit, style}` shape; the breakpoint map the built-in schema demands validates and does nothing, because the twig reads `.style`.
+
+  The verdict says `unresolved_font_slug in heading_font` (naming which keys) or `ok`. `testy/sprawdz-typografie.php` covers both branches plus later-declaration-wins and the missing-file case — `wp eval-file`, six assertions, no framework.
+
+### Changed
+
+- **`bdox/patch-global-settings` description names `typography.base_size`** as the second confirmed key the built-in tool cannot write usefully, and warns about the follow-on: once `base_size` is stored flat, later `oxygen/set-global-settings` calls fail their **output** validation (`base_size[number] is not of type object,null`) although the write itself went through. Read state back with `bdox/get-global-settings`. Same root cause as `buttons.primary.corner_radius` — the builder stores flat, the MCP schema demands a breakpoint map.
+
 ## 0.8.0 — 2026-08-21
 
 Nothing added, nothing removed. Every ability description, the plugin header, the README and UPSTREAM.md were re-measured against **Oxygen 6.2.0-beta.5 + Breakdance Elements for Oxygen 1.1.0.beta.1, WordPress 7.1, PHP 8.2.29** and corrected. Three of the pack's stated reasons for existing turned out to be fixed upstream, one was flatly wrong, and one new coupling was found.

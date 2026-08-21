@@ -211,3 +211,60 @@ function bdox_pack_css_file_sizes(): array {
 
 	return $sizes;
 }
+
+/**
+ * Resolved typography as the browser will see it, read from the compiled
+ * global-settings.css rather than from the stored settings tree.
+ *
+ * Returns the three values plus a verdict. `unresolved_font_slug` is the one that
+ * matters: it means a `gfont-…` slug reached the stylesheet as the font-family,
+ * so the Google Font never loaded and every heading fell back to the generic.
+ * Nothing about that is visible in the builder, and set-global-settings reported
+ * success.
+ *
+ * @param string $file Override the stylesheet path. Empty means the real compiled file;
+ *                     the parameter exists so the verdict itself can be tested against fixtures.
+ * @return array{heading:string,body:string,base_size:string,verdict:string}
+ */
+function bdox_pack_compiled_typography( string $file = '' ): array {
+	$file = '' !== $file ? $file : WP_CONTENT_DIR . '/uploads/oxygen/css/global-settings.css';
+
+	if ( ! is_readable( $file ) ) {
+		return array(
+			'heading'   => '',
+			'body'      => '',
+			'base_size' => '',
+			'verdict'   => 'no-compiled-global-settings-css — run bdox/regenerate-css',
+		);
+	}
+
+	$css = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+
+	$read = static function ( string $var ) use ( $css ): string {
+		// Take the LAST declaration: later blocks override earlier defaults.
+		if ( ! preg_match_all( '/' . preg_quote( $var, '/' ) . ':([^;}]+)/', $css, $m ) ) {
+			return '';
+		}
+		return trim( (string) end( $m[1] ) );
+	};
+
+	$heading = $read( '--bde-heading-font-family' );
+	$body    = $read( '--bde-body-font-family' );
+
+	$broken = array_filter(
+		array( 'heading_font' => $heading, 'body_font' => $body ),
+		static fn( string $v ): bool => 0 === strncmp( $v, 'gfont-', 6 )
+	);
+
+	return array(
+		'heading'   => $heading,
+		'body'      => $body,
+		'base_size' => $read( '--bde-base-font-size' ),
+		'verdict'   => $broken
+			? 'unresolved_font_slug in ' . implode( ', ', array_keys( $broken ) )
+				. ' — the slug drops every non-alphanumeric character, so "Bricolage Grotesque"'
+				. ' is "gfont-bricolagegrotesque", never "gfont-bricolage-grotesque".'
+				. ' Font families live in plugin/fonts/integrations/google-fonts/google-font-list.json.'
+			: 'ok',
+	);
+}

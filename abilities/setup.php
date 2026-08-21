@@ -13,7 +13,7 @@ ACFW_Pack::ability(
 	array(
 		'name'             => 'bdox/setup-report',
 		'label'            => 'Builder Setup Report',
-		'description'      => 'One call that answers "what state is this install actually in" before you change anything. Reports builder and element-plugin versions, registered breakpoints, which global-settings groups exist (containers, colors, palette, buttons, presets — a site missing these has its design system in CSS classes instead, which the client cannot edit), the compiled CSS file sizes, and a stale-cache verdict. The stale-cache check is the important one: it compares the ".breakdance " prefix count in the element plugin SOURCE against the compiled cache. Source 0 with compiled above 0 means the cache predates a plugin update and the site is rendering old default CSS — the fix is bdox/regenerate-css, not a CSS workaround or a plugin patch.',
+		'description'      => 'One call that answers "what state is this install actually in" before you change anything. Reports builder and element-plugin versions, registered breakpoints, which global-settings groups exist (containers, colors, palette, buttons, presets — a site missing these has its design system in CSS classes instead, which the client cannot edit), the compiled CSS file sizes, the typography as the browser actually resolves it, and a stale-cache verdict. Typography is read from the compiled global-settings.css on purpose: a Google Font slug drops every non-alphanumeric character rather than hyphenating it, so "gfont-bricolage-grotesque" is stored and emitted verbatim as the font-family while set-global-settings reports success — the verdict says unresolved_font_slug when that happened. typography.base_size has the same shape: only the flat form takes effect, so the stored value proves nothing and the compiled file does. The stale-cache check is the important one: it compares the ".breakdance " prefix count in the element plugin SOURCE against the compiled cache. Source 0 with compiled above 0 means the cache predates a plugin update and the site is rendering old default CSS — the fix is bdox/regenerate-css, not a CSS workaround or a plugin patch.',
 		'category'         => 'bdox',
 		'input_schema'     => array(
 			'type'                 => 'object',
@@ -64,6 +64,18 @@ ACFW_Pack::ability(
 				'stylesheets'     => count( (array) ( $settings['code']['stylesheets'] ?? array() ) ),
 				'scripts'         => count( (array) ( $settings['code']['scripts'] ?? array() ) ),
 			);
+
+			// Typography reported from the COMPILED css, not from the stored settings.
+			//
+			// Both of these fail silently when written. A Google Font slug is
+			// strtolower(preg_replace('/[^a-zA-Z0-9]+/', '', $family)) — every
+			// non-alphanumeric is dropped, not hyphenated — so "gfont-bricolage-grotesque"
+			// is accepted, stored, and emitted verbatim as the font-family. And
+			// typography.base_size only takes effect when stored flat; the shape
+			// set-global-settings demands validates and does nothing, because the twig
+			// reads .style, which a breakpoint map has not got. Reading the stored value
+			// therefore proves nothing — only the compiled file does.
+			$global['typography_compiled'] = bdox_pack_compiled_typography();
 
 			// Stale-cache gate: measure the plugin SOURCE, then the compiled cache.
 			//

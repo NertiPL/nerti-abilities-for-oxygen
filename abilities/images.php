@@ -3,7 +3,8 @@
  * Media-library images that actually render.
  *
  * The built-in `edit-post` cannot produce a working media-library image at a
- * named size. Measured 2026-07-27 on Oxygen 6.2.0-beta.2: an `OxygenElements\Image`
+ * named size. Measured 2026-07-27 on Oxygen 6.2.0-beta.2 and re-measured 2026-08-21 on
+ * 6.2.0-beta.5, unchanged: an `OxygenElements\Image`
  * with `from: media_library` and `size: "large"` renders the builder's 540x540 grey
  * placeholder, while `edit-post` reports success and reads the data back exactly as
  * written. The element template resolves the src as
@@ -66,7 +67,7 @@ ACFW_Pack::ability(
 	array(
 		'name'             => 'bdox/set-image',
 		'label'            => 'Set Media Library Image',
-		'description'      => 'Point an image element at a media-library attachment so it actually renders, at a named size and with a srcset. Use this instead of setting content.image through edit-post whenever the source is the media library: the built-in path cannot work. Measured 2026-07-27 on Oxygen 6.2.0-beta.2 — an OxygenElements\\Image with from: media_library and size: "large" renders the builder\'s 540x540 grey placeholder while edit-post reports success and reads the data back exactly as written. The element resolves its src as content.image.media.sizes[size].url, but the MCP schema declares media with only id, url and alt plus additionalProperties: false, so sizes can never be set and the lookup falls through to the placeholder. attributes.srcset is unreachable the same way, so API-created images emit no srcset at all. This ability fills both maps from WordPress\'s own attachment metadata and writes them into the element tree, then recompiles the post\'s CSS. Passing a size the attachment does not have is the one way to still get a placeholder, so unknown sizes are rejected with the list of real ones. Upstream report: soflyy/agent-connector-for-wp#79.',
+		'description'      => 'Point an image element at a media-library attachment so it actually renders, at a named size and with a srcset. Use this instead of setting content.image through edit-post whenever the source is the media library: the built-in path cannot work. Measured 2026-07-27 on Oxygen 6.2.0-beta.2, re-measured 2026-08-21 on 6.2.0-beta.5 and unchanged (the wpmedia control still schemas media as {id, url, alt} with additionalProperties: false, and both OxygenElements\\Image and EssentialElements\\Image2 still resolve src as content.image.media.sizes[size].url) — an OxygenElements\\Image with from: media_library and size: "large" renders the builder\'s 540x540 grey placeholder while edit-post reports success and reads the data back exactly as written. The element resolves its src as content.image.media.sizes[size].url, but the MCP schema declares media with only id, url and alt plus additionalProperties: false, so sizes can never be set and the lookup falls through to the placeholder. attributes.srcset is unreachable the same way, so API-created images emit no srcset at all. This ability fills both maps from WordPress\'s own attachment metadata and writes them into the element tree, then recompiles the post\'s CSS. Passing a size the attachment does not have is the one way to still get a placeholder, so unknown sizes are rejected with the list of real ones. Upstream report: soflyy/agent-connector-for-wp#79.',
 		'category'         => 'bdox',
 		'input_schema'     => array(
 			'type'                 => 'object',

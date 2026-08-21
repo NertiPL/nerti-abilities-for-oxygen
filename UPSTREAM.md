@@ -2,82 +2,172 @@
 
 What this pack works around, why, and an open offer to Soflyy (Oxygen / Agent Connector for WP) to take any of it upstream.
 
-Everything below was measured on **Oxygen 6.2.0-beta.2 + Breakdance Elements for Oxygen 1.1.0.beta.1 + Agent Connector for WP 1.26.0, WordPress 7.0.2, PHP 8.2**, on a clean install. These findings are version-bound; re-run `bdox/setup-report` before treating any of them as current.
+**Re-measured 2026-08-21 on Oxygen 6.2.0-beta.5 + Breakdance Elements for Oxygen 1.1.0.beta.1 + Agent Connector for WP 1.26.2, WordPress 7.1, PHP 8.2.29**, plus one confirmation on a production site running 6.2.0-beta.2 / PHP 8.3.33. The previous revision of this document was measured on 6.2.0-beta.2; the sections below say explicitly what changed between the two. These findings are version-bound — re-run `bdox/setup-report` before treating any of them as current.
 
-The code is GPL-2.0-or-later. Take it in whole or in part, with or without credit. If items 1 to 4 land upstream, most of this pack should disappear, which is the outcome we would prefer.
+The code is GPL-2.0-or-later. Take it in whole or in part, with or without credit.
 
 ---
 
-**Title:** MCP layer cannot address the elements pages are built from — plus two renderer bugs found while working around it
+## Fixed in 6.2.0 — thank you, and please leave these fixed
 
-Hi,
-
-We build client-editable Oxygen sites through the MCP server and hit the same set of walls on every project. We wrote a small ability pack to get past them and we would rather see the fixes upstream than maintain a workaround, so here is what we measured and the code, free to take, modify or ignore.
-
-**1. `BREAKDANCE_MCP_HIDDEN_ELEMENTS` makes the core elements unaddressable.**
-
-On a clean install:
-
-```php
-count( \Breakdance\Elements\get_elements_for_builder() )  // 162
-count( breakdance_mcp_visible_element_classnames() )      // 149
-```
-
-The 13 hidden ones are `Section`, `Div`, `Heading`, `Text`, `RichText`, `TextLink`, `WrapperLink`, `Icon`, `Image2`, `CodeBlock` and the code elements. `get-element-schemas` reports them as `missing` and `edit-post` rejects them, so an agent has to write the element tree through `php-eval` instead of the tools that exist for it.
-
-`Section` is the costly one. It is the only element that renders `.section-container`, the wrapper consuming `--bde-section-width` and the global section padding. An agent that cannot address `Section` builds every layout on `Div`, so the global container settings never apply and each page ends up carrying its own width in a class. Since `html-to-page` produces `OxygenElements\Container` — which also never renders `.section-container` — the recommended build path and the global container settings are currently mutually exclusive.
-
-This is separate from the builder's `oxygen_builder_hidden_elements` option: unhiding elements in the editor does not change what MCP sees.
-
-The list ends in `bdox_run_filters('breakdance_builder_elements', …)`, a plain `apply_filters` run twice, so it can be restored from outside with two `add_filter` calls. That is all our pack does for this; nothing is patched.
-
-**2. Writes replace instead of merging.** `set-global-settings` persists exactly what it receives, so sending only `colors` wipes global stylesheets, scripts and typography presets. `insert-stylesheet` replaces a selector's whole property map, so changing one property drops the selector's other properties and breakpoints. A `patch` variant of each would remove a whole class of regressions.
-
-**3. `get-global-settings` fails its own output validation on data the builder wrote.** A gradient button background returns:
-
-```
-output[settings][buttons][primary][background] is not of type string
-```
-
-and you get nothing back, so you cannot inspect what you are about to change. A settings reader should not be able to refuse the settings.
-
-**4. There is no public cache-regeneration ability.** Almost every direct data edit needs `regenerate_post_cache()` followed by `generateCacheForPost()`, and without it a correct edit looks like a broken control.
-
-**5. Renderer bug: `insert-stylesheet` drops `!important`.** Imported `.x{display:none !important}` and `body.breakdance .y{display:flex !important}` both compile into `selectors.css` without `!important`, for `class` and `custom` selectors alike. Measured load order on the front end is:
-
-```
-post-<id>-defaults.css → global-settings.css → selectors.css → post-<id>.css
-```
-
-so `selectors.css` loads before the per-element file. A flat project class `(0,1,0)` therefore loses to a Design-tab value of the same specificity on load order, and the usual escape hatch does not survive the import. The only path that keeps `!important` is `settings.code.stylesheets`, which loads earliest of all.
-
-**5a. Update 2026-07-27 — the strip happens before routing, not inside it.** Issue #80 suggests checking whether `!important` is lost at the same routing step that discards `background-image`. We measured that, and it is not. Probe submitted through `insert-stylesheet`:
+**`!important` now survives `insert-stylesheet`.** `mcp/design/css-to-properties.php::build_selector_props()` diverts every declaration with `getIsImportant()` into `custom_css` with the flag appended, before the typed converters run. Verified end to end: importing
 
 ```css
-.probe-b { box-shadow:0 1px 2px #000 !important;
-           mix-blend-mode:multiply !important;
-           will-change:transform !important }
+.probe { color: #ff0000 !important; padding: 8px; }
 ```
 
-`will-change` has no typed control, so it fell through to `custom_css` untouched by any typed handler — and still came back as `will-change:transform`, without the `!important`. A property that no typed handler claims cannot be losing `!important` inside the routing step, so the strip precedes it.
+stores `spacing.spacing.padding` as a typed property and `custom_css.custom_css` as `:selector {\n  color: #f00 !important;\n}`. On beta.2 the flag was stripped before routing and the whole compiled `selectors.css` of a production site contained zero occurrences of `!important`. Items 5 and 5a of the previous revision are closed.
 
-The same probe shows the routing decision is made on the parsed **value**, not on the property name: `box-shadow:0 1px 2px #000` went to the typed `effects.box_shadow` slot, while `box-shadow:none` in an adjacent rule fell through to `custom_css`.
+**`set-global-settings` deep-merges.** `breakdance_mcp_deep_merge_settings()` merges assoc arrays key by key, replaces lists and scalars. Verified: after writing `colors.palette` and `typography.body_font`, a second call carrying only `typography.base_font_size` left both intact. Item 2 (the settings half) is closed.
 
-Two further observations worth having:
+**`get-global-settings` no longer fails on an empty install.** `breakdance_ability_get_global_settings()` normalises a missing or empty tree to `{"settings": {}}`. Item 3 is half closed — see below for the half that is not.
 
-- The `custom_css` block compiles to a **second rule carrying the same selector**, emitted after the typed rule, so at equal specificity it wins on order. That is currently the only lever an importing agent has over the cascade.
-- The typed background handler **emits properties that were never submitted**: a lone `background-image:linear-gradient(0deg,#101010,#101010)` compiles to that gradient plus `background-size:auto`, `background-position:0px 0px`, `background-repeat:repeat` and `background-attachment:scroll`.
+---
 
-Measured on Oxygen 6.2.0-beta.2 + Elements 1.1.0.beta.1 + Agent Connector 1.26.0, WP 7.0.2, PHP 8.3.31. The whole compiled `selectors.css` of that production site contained zero occurrences of `!important`.
+## Still open
 
-**6. Renderer bug: `text-decoration-line: Array`.** `global-styles/typography/typography.css.twig` prints
+### 1. `BREAKDANCE_MCP_HIDDEN_ELEMENTS` still makes the core elements unaddressable
+
+```php
+count( \Breakdance\Elements\get_element_classnames() )   // 186
+count( breakdance_mcp_visible_element_classnames() )     // 151   without our filter
+```
+
+`Section`, `Heading` and `Icon` came off the constant since beta.2 — thank you. The constant now holds 14 entries: `CssCode`, `HtmlCode`, `PhpCode`, `CodeBlock`, `FHtmlCode`, `Div`, `WrapperLink`, `Text`, `TextLink`, `Image`, `Image2`, `RichText`, `FSvgIcon`, `SvgIcon`.
+
+The comment in the source says the legacy elements are banned so the AI uses the fundamentals instead. On **BEFO 1.1.0.beta.1**, which is the version the Oxygen updater currently offers on our licence, the fundamentals **do not exist**:
+
+```php
+class_exists('EssentialElements\FText')          // false
+class_exists('EssentialElements\FImage')         // false
+class_exists('EssentialElements\FRichText')      // false
+class_exists('EssentialElements\FTextLink')      // false
+class_exists('EssentialElements\FSvgIcon2')      // false
+class_exists('EssentialElements\FHtmlCode')      // false
+class_exists('EssentialElements\ContainerLink')  // false
+```
+
+So the ban points at replacements that are not installed, and the fallbacks that *are* installed have no Design tab. Measured with `oxygen-get-element-schemas`: `EssentialElements\{Section,Heading,Text,Image2,Button}` all expose a `design` section; `OxygenElements\{Container,Text,Image}` expose only `content`/`settings`/`meta`. A client-editable site is exactly the case where the Design tab is the point, so an agent steered onto `OxygenElements` produces a page the client cannot restyle.
+
+Suggestion: gate the fundamentals half of the constant on `class_exists()` for the fundamental it names, so a site without them keeps the legacy element addressable.
+
+### 1a. NEW — the Elements settings page and the MCP element list share a filter
+
+This one is not in the previous revision because we had it backwards there: we wrote that `oxygen_builder_hidden_elements` was independent of MCP. It is not.
+
+`admin/settings-page/tabs/elements.php` registers
+
+```php
+add_filter('breakdance_builder_elements', '…\ElementsTab\filter_builder_elements', 10, 1);
+```
+
+and `mcp/schemas/elements.php::breakdance_mcp_visible_element_classnames()` ends with
+
+```php
+$visible = bdox_run_filters('breakdance_builder_elements', array_values($non_experimental));
+```
+
+so the same list a human curates in **Oxygen → Settings → Elements** is subtracted from what an agent can address. Measured: adding `EssentialElements\Button` to the option took `oxygen-get-element-slugs` from 164 to 163 and made `get-element-schemas` refuse it; removing it restored 164.
+
+Two consequences worth deciding on deliberately:
+
+- A stock Oxygen install ships that option pre-filled with ten elements by `\Breakdance\BreakdanceOxygen\addDefaultHiddenElements()`, so **`Section`, `Heading` and `Icon` are still invisible to MCP on a default install** even though you took them off the constant. The two mechanisms overlap, and the fix to one is undone by the other.
+- Anyone who tidies the Add panel before handing a site over silently removes elements from the agent that maintains it. Our workaround is a note in the docs — *build first, hide last* — which is a poor substitute for the two lists being separate.
+
+If editor curation is meant to be a UI preference, MCP should read the pre-filter list. If it is meant to be policy, it should say so, because right now it is discoverable only by measuring.
+
+**And the coupling costs us too, in the other direction.** Our restore has to go on that same filter, so it also clears `alwaysHide` in the builder's Add panel — `get_elements_for_builder()` hands the filtered array to `FilteredGets\addPanelRules()`, which sets the flag on whatever is missing from it. Measured: with the pack active, `Section`, `Div` and `Heading` report no `alwaysHide`; with its filter removed, all three do. So a pack that only wants to make elements addressable by an agent cannot avoid un-simplifying the panel for the human, because the filter carries no caller context. A second filter — or a `$context` argument on this one — would let both of us do the right thing.
+
+### 1c. `oxygen_builder_hidden_elements` is not visible where you would look for it
+
+Related to 1a and cheap to fix: the Elements settings screen lists elements alphabetically with no indication that ten are hidden by default, so a maintainer scrolling the list sees `Blockquote` and concludes nothing is hidden. A count ("10 elements hidden") above the list, or sorting the hidden ones first, would save a lot of wrong diagnoses.
+
+### 1b. `addDefaultHiddenElements()` re-hides on every version bump
+
+The guard is `if (is_array($current) && count($current) > 0) return;`, and the caller is `handleVersionChange()`, which runs whenever `__BREAKDANCE_VERSION !== last_migrated_version`. So a site that deliberately unhid everything gets all ten re-hidden by the next Oxygen update. Measured: an empty list *does* persist across normal requests, so the only trigger is the migration (and the setup wizard). The source already carries `// TODO: Run this only once` at that call site.
+
+### 2. `insert-stylesheet` is still replace-only
+
+`.probe{margin:4px}` imported over a selector already holding `padding` plus a `custom_css` block leaves only the margin: `merge_breakpoint_properties()` replaces the whole map for the breakpoint it touches. Changing one property therefore drops the rest, which is the most common regression when an agent edits an existing design system. A `patch` variant, or a documented read-modify-write, would close it.
+
+### 2a. `insert-stylesheet` lowercases custom-property names
+
+```css
+.probe { --myVar: 4px; padding: var(--myVar); }
+```
+
+is stored as
+
+```css
+:selector {
+  --myvar: 4px;
+  padding: var(--myVar);
+}
+```
+
+The declaration is lowercased, the reference is not, so every `var(--myVar)` dies silently while the import reports success. Custom property names are case-sensitive per spec.
+
+### 3. `get-global-settings` still fails its own output validation on data the builder wrote
+
+The empty case is fixed. A real site is not:
+
+```
+output[settings][buttons][primary][corner_radius][unit] is not of type object,null
+```
+
+and you get nothing back — not even the branches that validate. The cause is a shape mismatch inside Oxygen itself: the output schema declares `buttons.primary.corner_radius` as a breakpoint-keyed map (`propertyNames` restricted to the breakpoint enum, `additionalProperties` the unit object), while the builder stores it flat:
+
+```json
+"corner_radius": {"number": null, "unit": "custom", "style": "var(--radius-s)"}
+```
+
+Note that `buttons.button_presets[].styles.corner_radius` in the same stored tree **is** breakpoint-keyed, so the same control is persisted two different ways depending on where it sits. Observed on a production site (6.2.0-beta.2) and reproduced on a clean 6.2.0-beta.5 install by storing that exact value.
+
+A settings reader should not be able to refuse the settings. If validation must stay, please degrade to returning the tree with a warning rather than an error.
+
+### 3a. `set-global-settings` rejects keys the renderer reads
+
+`buttons.primary.background_hover` is accepted and persisted — that object is open. `buttons.primary.typography.color_hover` is rejected:
+
+```
+input[settings][buttons][primary][typography][color_hover] — color_hover is not a valid property of object
+```
+
+because that sub-object carries `additionalProperties: false`. But `elements/macros/atom-v1-button-css.twig` line 34 reads exactly that key:
+
+```twig
+--bde-button-{{buttonStyle}}-text-color-hover: {{ styles.typography.color_hover|default(styles.typography.color)|… }}
+```
+
+So the schema forbids a value the renderer consumes. (`buttons.primary.typography.color` also has to be breakpoint-keyed on input while several sibling colours are plain strings — same family of inconsistency.)
+
+### 4. There is still no cache-regeneration ability
+
+The 6.2.0-beta.5 server exposes 49 tools and none of them rebuilds CSS. Oxygen's own save paths do call it — `data/save.php:121` runs `generateCacheForPost($id)` on a document save, and `save_global_settings()` / `save_selectors()` run `generateCacheForGlobalSettings()` — so the gap is narrower than we wrote in the previous revision. It still bites for data changed outside those paths, and for a compiled cache that predates a plugin update, which renders the old default CSS and looks exactly like a specificity bug.
+
+### 5. Media images are unreachable through `edit-post`
+
+Unchanged from the previous revision, re-measured on beta.5. The `wpmedia` control schema is
+
+```php
+'properties' => ['id' => …, 'url' => …, 'alt' => …]   // + additionalProperties: false
+```
+
+while both `OxygenElements\Image` and `EssentialElements\Image2` resolve their `src` as `content.image.media.sizes[content.image.size].url` and their `srcset` as `content.image.media.attributes.srcset`. Neither `sizes` nor `attributes` is in the schema, so an image set through `edit-post` with a named size renders the 540×540 grey placeholder while the call reports success. Upstream report: [soflyy/agent-connector-for-wp#79](https://github.com/soflyy/agent-connector-for-wp/issues/79).
+
+### 6. Renderer bug: `text-decoration-line: Array`
+
+Unchanged. `global-styles/typography/typography.css.twig`, **lines 114 and 126**:
 
 ```twig
 text-decoration-line: {{ settings.typography.advanced.links.decoration.line }};
+text-decoration-line: {{ settings.typography.advanced.links.decoration.line_hover }};
 ```
 
-without a `join` filter, so an array value compiles to the literal `text-decoration-line:Array` and is silently dropped by the browser. The element-level macro `customTypographyValuesAsCssVariables` does apply `| join(' ')`, so the same value shape is correct in one place and broken in the other. A `| join(' ')` in the global template would make them consistent.
+`decoration.line` is declared as an array in the settings schema (`items` enum `underline`/`overline`/`line-through`/`none`), so it compiles to the literal `text-decoration-line:Array` and the browser drops it. The element-level macro `customTypographyValuesAsCssVariables` does apply `| join(' ')`, so the same value shape is correct in one place and broken in the other. A `| join(' ')` on both lines makes them consistent.
 
-**The code.** The pack is at https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements — GPL-2.0-or-later, eight abilities. Take any of it, in whole or in part, with or without credit. If items 1 to 4 land upstream, most of the pack should disappear, which is the outcome we would prefer. The element-default annotations in `abilities/defaults.php` are probably the piece most worth keeping as documentation: they are the questions an agent asks on every build.
+---
+
+**The code.** The pack is at https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements — GPL-2.0-or-later, nine abilities. Take any of it, in whole or in part, with or without credit. Every ability here is a workaround we would rather delete; three of them shrank in 0.8.0 because of your 6.2.0 fixes. The element-default annotations in `abilities/defaults.php` are the piece most worth keeping as documentation: they are the questions an agent asks on every build.
 
 Happy to open separate issues per item if that is easier to triage.

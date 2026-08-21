@@ -131,7 +131,7 @@ ACFW_Pack::ability(
 	array(
 		'name'             => 'bdox/builder-hidden-elements',
 		'label'            => 'Builder Hidden Elements',
-		'description'      => 'Read or change which elements the Oxygen editor offers in its "add element" panel. Oxygen ships with ten Essential Elements hidden because they duplicate native Oxygen ones — Section, Div, Heading, Text, TextLink, WrapperLink, Icon, RichText, CodeBlock, Image2 — and those are exactly the ones a client-editable build needs, because only the Essential versions have a Design tab. Pass unhide_all to reveal them. IMPORTANT: saving an EMPTY list does nothing lasting — the builder rebuilds the default hidden list on the next request whenever the option is empty, so unhiding works by storing a non-empty placeholder list instead. This option controls the editor panel only; it is a different mechanism from the MCP visibility this pack fixes with a filter, and it never affects how already-placed elements render.',
+		'description'      => 'Read or change the oxygen_builder_hidden_elements option — the list a human edits under Oxygen → Settings → Elements. Oxygen pre-fills it with ten Essential Elements on install (Section, Div, Heading, Text, TextLink, WrapperLink, Icon, RichText, CodeBlock, Image2), which are exactly the ones a client-editable build needs: measured 2026-08-21 with oxygen-get-element-schemas on Oxygen 6.2.0-beta.5, EssentialElements Section/Heading/Text/Image2/Button all expose a `design` section while the native OxygenElements Container/Text/Image expose none, so only the Essential versions give the client a Design tab. Pass unhide_all to clear the list. WARNING — THIS OPTION IS NOT EDITOR-ONLY: admin/settings-page/tabs/elements.php subtracts it on the breakdance_builder_elements filter, and Oxygen runs the MCP element list through that same filter, so anything here also vanishes from oxygen-get-element-slugs and oxygen-get-element-schemas. Measured: adding EssentialElements\\Button took get-element-slugs from 164 to 163 and made get-element-schemas refuse it. Hide elements only AFTER the agent has finished building. The response therefore reports BOTH sources of truth: the stored option and the element count MCP can actually see. Note on the empty list: it DOES persist across normal requests on 6.2.0-beta.5 (measured — set to [], reloaded, still []). It is repopulated by addDefaultHiddenElements(), which the guard `count($current) > 0` only lets through when the list is empty AND the caller runs — the setup wizard, or handleVersionChange() on the next Oxygen update. So an empty list survives until Oxygen is updated, then silently re-hides all ten. This ability stores a harmless non-empty placeholder instead, so the unhide survives updates. FINALLY, WHILE THIS PACK IS ACTIVE, HIDING ONE OF THE 13 ELEMENTS IT RESTORES DOES NOTHING: the pack re-adds them on the same filter at priority 20, after the settings page subtracts at priority 10. To actually hide them for the client, narrow the pack\'s own list first — add_filter( "bdox_pack_restored_elements", "__return_empty_array" ) — or deactivate the pack. Handover order: build, then hide, then narrow.',
 		'category'         => 'bdox',
 		'input_schema'     => array(
 			'type'                 => 'object',
@@ -151,9 +151,10 @@ ACFW_Pack::ability(
 		'output_schema'    => array(
 			'type'       => 'object',
 			'properties' => array(
-				'hidden'         => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
-				'changed'        => array( 'type' => 'boolean' ),
-				'builder_panel'  => array( 'type' => 'integer' ),
+				'hidden'            => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
+				'changed'           => array( 'type' => 'boolean' ),
+				'mcp_visible_count' => array( 'type' => 'integer' ),
+				'hidden_from_mcp'   => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
 			),
 		),
 		'annotations'      => array( 'readonly' => false, 'destructive' => false, 'idempotent' => true ),
@@ -168,8 +169,10 @@ ACFW_Pack::ability(
 			$changed = false;
 
 			if ( ! empty( $input['unhide_all'] ) ) {
-				// A non-empty placeholder: an empty list is repopulated with the
-				// defaults on the next request, so it would silently re-hide.
+				// A non-empty placeholder. An empty list persists across normal
+				// requests, but addDefaultHiddenElements() re-fills it whenever it
+				// runs on an empty option — setup wizard, or handleVersionChange()
+				// on the next Oxygen update — so the unhide would silently revert.
 				$new = array( 'EssentialElements\\MissingElement' );
 			} elseif ( isset( $input['hidden'] ) && is_array( $input['hidden'] ) ) {
 				$new = array_values( array_filter( $input['hidden'], 'is_string' ) );
@@ -191,15 +194,23 @@ ACFW_Pack::ability(
 			$stored = get_option( $option );
 			$list   = is_string( $stored ) ? json_decode( $stored, true ) : $stored;
 
-			$panel = 0;
-			if ( function_exists( 'Breakdance\\Elements\\get_elements_for_builder' ) ) {
-				$panel = count( \Breakdance\Elements\get_elements_for_builder() );
-			}
+			// The second source of truth. get_elements_for_builder() is useless here:
+			// it maps over every registered classname and only feeds the filtered list
+			// to addPanelRules, so its count does not move when the option changes
+			// (measured: 165 before and after hiding an element). The MCP list does.
+			$visible = function_exists( 'breakdance_mcp_visible_element_classnames' )
+				? breakdance_mcp_visible_element_classnames()
+				: array();
+
+			$registered = function_exists( 'Breakdance\\Elements\\get_element_classnames' )
+				? \Breakdance\Elements\get_element_classnames()
+				: array();
 
 			return array(
-				'hidden'        => is_array( $list ) ? $list : array(),
-				'changed'       => $changed,
-				'builder_panel' => $panel,
+				'hidden'            => is_array( $list ) ? $list : array(),
+				'changed'           => $changed,
+				'mcp_visible_count' => count( $visible ),
+				'hidden_from_mcp'   => array_values( array_diff( $registered, $visible ) ),
 			);
 		},
 	)

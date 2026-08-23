@@ -2,6 +2,18 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.11.0 — 2026-08-23
+
+### Added
+
+- **`bdox/house-rules`** — zasady budowania podane na granicy MCP, a nie w pliku skilla, którego cudzy agent nigdy nie zobaczy. Wołane zaraz po `oxygen/get-instructions` i ponownie za każdym razem, gdy ma powstać klasa CSS.
+
+  Powód liczbowy: sklep WooCommerce zbudowany z zakładki Design chodzi na **69 selektorach** (Haberkorn, zmierzone 2026-08-23). Pięciostronicowa wizytówka zbudowana bez tej zasady urosła do **308**. Ta różnica decyduje o tym, czy klient sam zmieni wygląd, czy wraca po agenta przy każdej poprawce.
+
+  Ability niesie: kopię zapasową przed pracą na cudzej instalacji, procedurę „design-map → zakładka Design → istniejąca klasa → dopiero nowy selektor" z budżetem selektorów, ścieżki kontrolek, których nikt nie zgadnie (`design.layout_v2`, `design.container`), próg Text/RichText liczony po nagłówkach a nie po długości, oraz cztery usterki wyglądające na zepsuty JavaScript.
+
+  `input_schema` ma jedno pole `section` mimo że ability niczego nie potrzebuje: adapter MCP niektórych instalacji zamienia puste `{}` na pustą tablicę PHP i walidacja odrzuca ją jako „nie obiekt". Przy okazji da się wyciągnąć jeden rozdział zamiast całości.
+
 ## 0.10.0 — 2026-08-23
 
 ### Added

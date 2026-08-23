@@ -3,7 +3,7 @@
  * Plugin Name:       Unofficial Abilities for Breakdance Elements for Oxygen
  * Plugin URI:        https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements
  * Description:        MCP ability pack for Oxygen 6.x + Breakdance Elements, and on a store also Breakdance WooCommerce. Unhides the core elements the built-in Oxygen MCP tools cannot see (Div, Text, RichText, TextLink, WrapperLink, Image2, code blocks), and adds what the built-in tools lack: the house rules and the Design-tab map that keep a build editable by the site owner, a WooCommerce element atlas, a store plugin toolbox, CSS cache regeneration, partial global-settings patching, non-destructive selector merging, editor element visibility, a setup/stale-cache report, and a per-element report of the default CSS you must override for a design to survive.
- * Version:           0.12.0
+ * Version:           0.12.1
  * Requires Plugins:  agent-connector-for-wp, oxygen
  * Requires PHP:      8.1
  * Author:            Nerti
@@ -120,7 +120,7 @@ defined( 'ABSPATH' ) || exit;
 
 define( 'BDOX_PACK_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BDOX_PACK_FILE', __FILE__ );
-define( 'BDOX_PACK_VERSION', '0.12.0' );
+define( 'BDOX_PACK_VERSION', '0.12.1' );
 
 /**
  * The elements the built-in Oxygen MCP layer hides from agents.

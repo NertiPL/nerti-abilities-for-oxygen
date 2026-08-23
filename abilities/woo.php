@@ -214,12 +214,27 @@ function bdox_pack_woo_rules(): array {
 	);
 }
 
-/*
- * Register only on a store. On a site without the WooCommerce element pack this
- * ability would answer questions about elements that do not exist, which is worse
- * than not being there at all.
+/**
+ * Register the ability, but only on a store.
+ *
+ * The check has to run on the Abilities API hook rather than while this file is
+ * being included, and the reason is plugin load order: WordPress loads active
+ * plugins in the order of the `active_plugins` option, where
+ * `unofficial-abilities-...` sorts BEFORE `woocommerce`. At include time
+ * class_exists( 'WooCommerce' ) is therefore false on a site that plainly has
+ * WooCommerce, the ability silently never registers, and the symptom is
+ * "Ability 'bdox/woo-map' not found" on a working store. Measured 2026-08-23,
+ * which is also why this comment exists instead of a one-line if.
+ *
+ * Priority 5 runs ahead of ACFW_Pack::boot(), which reads the collected
+ * definitions at the default priority.
+ *
+ * @return void
  */
-if ( class_exists( 'WooCommerce' ) && class_exists( 'EssentialElements\\Wooproductprice' ) ) {
+function bdox_pack_register_woo_map(): void {
+	if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'EssentialElements\\Wooproductprice' ) ) {
+		return;
+	}
 
 	bdox_pack_ability(
 		array(
@@ -310,3 +325,5 @@ if ( class_exists( 'WooCommerce' ) && class_exists( 'EssentialElements\\Wooprodu
 		)
 	);
 }
+
+add_action( 'wp_abilities_api_init', 'bdox_pack_register_woo_map', 5 );

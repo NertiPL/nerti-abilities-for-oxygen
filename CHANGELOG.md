@@ -2,6 +2,12 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.12.1 — 2026-08-23
+
+### Fixed
+
+- **`bdox/woo-map` nie rejestrowała się na witrynie, która ewidentnie ma WooCommerce.** Warunek `class_exists( 'WooCommerce' )` stał w treści pliku, czyli wykonywał się w chwili wczytywania wtyczki — a WordPress wczytuje wtyczki w kolejności z `active_plugins`, gdzie `unofficial-abilities-...` idzie PRZED `woocommerce`. Warunek był więc fałszywy na sklepie i ability po cichu nie powstawała; objaw to „Ability 'bdox/woo-map' not found" na działającym sklepie. Sprawdzenie przeniesione na hak `wp_abilities_api_init` z priorytetem 5, czyli przed `ACFW_Pack::boot()`.
+
 ## 0.12.0 — 2026-08-23
 
 Zmierzone na **Oxygen 6.2.0-beta.6 + Breakdance Elements for Oxygen 1.1.0.beta.4 + Breakdance WooCommerce for Oxygen 1.1.0.beta.1, WordPress 7.1, PHP 8.1.34** — sklep Haberkorn.

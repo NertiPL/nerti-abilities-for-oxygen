@@ -8,7 +8,7 @@ Install the `.zip` from the release page, not the green *Code → Download ZIP* 
 
 It exists because an agent building client-editable pages in Oxygen keeps hitting the same walls. Every claim below was **re-measured on 2026-08-21 on a live install**: Oxygen **6.2.0-beta.5**, Breakdance Elements for Oxygen **1.1.0.beta.1**, WordPress **7.1**, PHP **8.2.29**. Nothing here comes from documentation, and two claims in the 0.7.0 README were wrong by this version — the element counts, and "the hidden-elements option does not affect MCP". Both are corrected below.
 
-## The walls, as measured on 6.2.0-beta.5
+## The walls, as measured on 6.2.0-beta.6
 
 ### 1. MCP cannot see the elements every page is made of — and two separate bans cause it
 
@@ -111,6 +111,10 @@ You get **nothing** back, not even the parts that validate. The cause is inside 
 
 | Ability | What it does |
 |---|---|
+| `bdox/house-rules` | The build rules served at the MCP boundary instead of from a skill file a foreign agent never sees: Design tab before any CSS class, the selector budget a real store runs on, the control paths nobody guesses, Text vs RichText, the four failures that look like broken JavaScript, and the three levels a WooCommerce store is styled from. Call it right after `oxygen/get-instructions`. |
+| `bdox/design-map` | Every control an element exposes, one line each, instead of the 5–15k tokens `get-element-schemas` returns for one element. Typography and text-effects groups collapse to a single line (`expand: true` opens them), which is what makes a WooCommerce element readable at all: `Wooproductprice` goes from ~70 lines to 8. |
+| `bdox/woo-map` | Atlas of the store elements — what each one renders, when to reach for it, and its design groups read live from the schema. Registers only when Breakdance WooCommerce for Oxygen is active. Complements `oxygen/get-ecommerce-instructions`, which covers building a store; this one covers styling it. |
+| `bdox/store-toolbox` | Which plugins a store build needs, what each is for, which are already active here, and the two that must not be switched on while an agent works: a security plugin whose firewall blocks the REST API, and a page cache that serves the previous version of every page. |
 | `bdox/element-visibility` | The three bans, reported separately: what Oxygen hardcodes, what a human hid in the Elements panel, what this pack restored. The answer to "why is my element in `missing`" — and the warning that the Elements panel is not editor-only. |
 | `bdox/element-defaults` | Live `defaultCss()` per element, parsed into declarations with specificity, plus the measured must-override list: what breaks and the fix that survives an update. |
 | `bdox/setup-report` | Versions, breakpoints, which global-settings groups exist, compiled CSS file sizes, and a stale-cache verdict from comparing plugin source against the compiled cache. |
@@ -130,7 +134,7 @@ An agent cannot install this for you: Agent Connector refuses to write `.php` ou
 
 **Updates.** From 0.6.0 onward new releases show up under **Plugins** like any other update, and the one-click update works. The plugin declares an `Update URI` and answers the `update_plugins_github.com` hook WordPress added in 5.8 for self-hosted plugins; it reads the GitHub releases API directly and never touches the shared update transient. A successful lookup is not cached — WordPress already caches the answer and decides when to ask again — so a release you publish now is offered on the next check WordPress makes, not up to twelve hours later. Only a *failed* lookup is cached, for 15 minutes, because that is the case that is also slow.
 
-Verify with `bdox/element-visibility`: `mcp_visible_count` should be 164 on a stock 6.2.0-beta.5 + BEFO 1.1.0.beta.1 install, and `restored_by_this_pack` should list 13 elements.
+Verify with `bdox/element-visibility`: on Oxygen 6.2.0-beta.6 + BEFO 1.1.0.beta.4 + BWFO 1.1.0.beta.1 (measured 2026-08-23) `registered_count` is 188 and `mcp_visible_count` is 165 — 155 without the pack. `restored_by_this_pack` still lists 13 entries; 10 of them are doing work on this version, Section, Heading and Icon having dropped off Oxygen's hidden constant on their own.
 
 **Building a release ZIP.** Build it from the tag, never by zipping the working folder — the 0.6.1 asset was built that way and shipped `.git/` (history, remote, config) inside the plugin, 140 entries where 12 were the plugin:
 

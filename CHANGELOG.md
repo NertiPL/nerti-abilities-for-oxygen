@@ -2,6 +2,38 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.12.0 — 2026-08-23
+
+Zmierzone na **Oxygen 6.2.0-beta.6 + Breakdance Elements for Oxygen 1.1.0.beta.4 + Breakdance WooCommerce for Oxygen 1.1.0.beta.1, WordPress 7.1, PHP 8.1.34** — sklep Haberkorn.
+
+### Fixed
+
+- **Wywołanie ability bez argumentów kończyło się błędem walidacji.** To nie była usterka pojedynczej ability, tylko całej paczki: `mcp-adapter-execute-ability` z `parameters: {}` dochodzi do `WP_Ability::execute()` jako **null**, nie jako pusty obiekt. `execute()` wywołuje najpierw `normalize_input()` (który podstawia `input_schema['default']`, gdy wejście jest nullem), a dopiero potem `validate_input()`. Bez zadeklarowanego `default` null przechodzi normalizację nietknięty i `rest_validate_value_from_schema` odrzuca go komunikatem „input nie jest typu object".
+
+  Skutek na żywej instalacji: `bdox/regenerate-css`, `bdox/setup-report`, `bdox/element-visibility` i `bdox/builder-hidden-elements` **nie dawały się wywołać tak, jak każe ich własny opis** — bez parametrów. Agent dostawał błąd walidacji i najczęściej wnioskował, że ability nie istnieje albo że paczka jest zepsuta. Zmierzone 2026-08-23 na WP 7.1, `wp-includes/abilities-api/class-wp-ability.php`.
+
+  Poprawka siedzi w jednym miejscu: `bdox_pack_ability()` dokłada `default: {}` do każdego `input_schema` przed rejestracją, więc dotyczy też każdej ability dopisanej później. Nie ruszamy `ACFW_Pack` — rejestr bywa własnością innej paczki, która załadowała się pierwsza.
+
+### Added
+
+- **`bdox/woo-map`** — atlas elementów sklepu. Rejestruje się **tylko wtedy, gdy Breakdance WooCommerce for Oxygen jest aktywny**; na witrynie bez sklepu ability po prostu nie ma, zamiast opowiadać o elementach, których nie ma.
+
+  Co daje ponad `oxygen/get-ecommerce-instructions`: tamten przewodnik uczy, jak sklep **zbudować** (szablony, pętle, galeria, warunki szablonów). Ten mówi, czym każdy element **jest** i **gdzie siedzi jego wygląd** — grupy z zakładki Design czytane na żywo ze schematu, więc lista nie zdezaktualizuje się po aktualizacji wtyczki.
+
+  Niesie też sześć zasad, na których stoi stylowanie sklepu, a pierwsza oszczędza najwięcej pracy: ustawienia globalne mają **całą gałąź `woocommerce`** — przyciski (dodaj do koszyka, kasa, drugorzędne, destrukcyjne, ich typografia, hover i stan wyłączony), kolory, pola formularzy razem z polem ilości, plakietka promocji, gwiazdki, komunikaty, tabele, skala odstępów, skala typografii, domyślne listingu produktów i modal quicklook. Jeden zapis przez `bdox/patch-global-settings` ubiera cały sklep, zanim ktokolwiek dotknie pojedynczego elementu. Na Haberkornie ta gałąź była pusta (`null`), a sklep i tak chodzi na 69 selektorach — po jej wypełnieniu część z nich przestaje być potrzebna.
+
+- **`bdox/store-toolbox`** — które wtyczki są potrzebne przy sklepie, co która robi, kiedy się przydaje, i — sprawdzone na żywo na tej instalacji — które są aktywne, które zainstalowane i wyłączone, a których brakuje. Dopasowanie idzie po **nazwie** wtyczki, nie po slugu: slug różni się między wersją darmową a płatną tej samej wtyczki i między polskimi odsprzedawcami tej samej bramki.
+
+  Osobno lista tego, czego **nie wolno włączać w trakcie pracy agenta**, z powodem: wtyczka bezpieczeństwa, której firewall blokuje REST API, ucina agentowi jedyne wejście (objaw — wszystkie wywołania padają naraz — wygląda na awarię konektora), a cache stron serwuje poprzednią wersję strony, więc poprawnie zapisana zmiana czyta się jako nieudana i następnym ruchem jest „naprawianie" czegoś, co nigdy nie było zepsute.
+
+### Changed
+
+- **`bdox/design-map` zwija bloki typografii i efektów tekstu do jednej linii.** Powód jest ilościowy i widać go dopiero na WooCommerce: blok typografii (`fontFamily`/`fontSize`/`fontWeight`/`lineHeight` plus całe `advanced`) i blok efektów (`fill`, gradient, osiem kluczy `image_*`, obrys, cień) powtarzają się dosłownie dla **każdej stylowanej części elementu**. `EssentialElements\Wooproductprice` ma osobną typografię dla ceny bieżącej i dla przekreślonej, więc mapa tego jednego elementu zajmowała **70 linii, w większości dwa razy to samo**. Po zwinięciu: 8 linii. Nowy parametr `expand: true` przywraca pełne rozwinięcie, gdy naprawdę potrzebny jest konkretny liść.
+
+- **`bdox/house-rules` — dwa nowe rozdziały.** Rozdział 6 opisuje trzy poziomy stylowania sklepu (`settings.woocommerce` → zakładka Design elementu → dopiero klasa) i mówi wprost, że klasa celująca w wewnętrzne znaczniki elementu WooCommerce jest odpowiedzią **błędną**, a nie gorszą: element sam emituje CSS z tych kontrolek, więc klasa albo przegrywa na specyficzności, albo wygrywa przypadkiem i pada przy kolejnej aktualizacji wtyczki. Rozdział 7 kieruje do `bdox/store-toolbox` i wymienia dwie wtyczki kończące sesję. Rozdział 0 mówi teraz, dlaczego `updraft/backup-now` nie oznacza „kopia zrobiona".
+
+- **Nagłówek wtyczki, README i liczby przemierzone na nowych wersjach.** `188` zarejestrowanych elementów, `155` widocznych dla MCP bez paczki, `165` z paczką — czyli paczka odzyskuje na tej wersji **10** elementów, nie 13: `Section`, `Heading` i `Icon` same zeszły ze stałej `BREAKDANCE_MCP_HIDDEN_ELEMENTS` i filtr je pomija, bo już są na liście. Opcja `oxygen_builder_hidden_elements` trzyma na tej instalacji **jeden** wpis (`EssentialElements\MissingElement`), a nie dziesięć z opisu — dlatego opis mówi teraz, żeby czytać jej wartość przez `bdox/element-visibility`, zamiast zakładać którykolwiek kształt. Fundamenty (`FText`, `FImage`, `FRichText`, `FTextLink`, `ContainerLink`) nadal nie istnieją na BEFO 1.1.0.beta.4, więc filtr przywracający elementy zostaje.
+
 ## 0.11.0 — 2026-08-23
 
 ### Added

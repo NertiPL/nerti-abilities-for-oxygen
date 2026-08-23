@@ -27,8 +27,10 @@ measured on this stack (Oxygen 6.2 + Breakdance Elements), not written for a gen
 ## 0. Before touching a site you did not build
 
 Take a backup: `updraft/backup-now` then poll `updraft/list-backups` until the entry
-appears. Do not report a backup as done off the queue call. If the site has no UpdraftPlus
-ability, say so before doing bulk edits rather than after.
+appears. Do not report a backup as done off the queue call — that call returns when the job is
+QUEUED, it runs through WP-Cron, and on a store with media it takes minutes. If the response
+says `cron_disabled`, nothing will run it at all. If the site has no UpdraftPlus ability, say so
+before doing bulk edits rather than after.
 
 ## 1. The Design tab comes before any CSS class
 
@@ -98,24 +100,59 @@ element with a level, so RichText's `<p>` wrapper disqualifies it there.
 `oxygen_builder_hidden_elements` hides elements from the MCP element list too, not just from
 the editor's Add panel. Hiding elements before the build is finished cuts the agent off from
 them. `bdox/element-visibility` reports what is hidden and why.
+
+## 6. A store is styled from three levels, in this order
+
+Same rule as chapter 1, one level deeper, because WooCommerce adds a level ABOVE the Design tab:
+
+    global settings -> settings.woocommerce ..... themes every store part site-wide, one write
+    element Design tab .......................... one element, one place
+    CSS class ................................... only what neither of the above can express
+
+`settings.woocommerce` is not a stub. It carries buttons (add-to-cart, checkout, secondary,
+destructive, their typography, hover and disabled states), colours, form fields down to the
+quantity input, the sale badge, star colour and size, notices, tables, wrappers, the spacing
+scale, the typography scale, product-list defaults and the quicklook modal. Write it with
+`bdox/patch-global-settings`, read it back with `bdox/get-global-settings`.
+
+Then the elements. Every WooCommerce element has its own Design tab and some have more than one
+typography group in it — the price styles the current price and the struck-through old price
+separately, and no class on the wrapper can tell those two apart. Read them with
+`bdox/design-map`, never with `get-element-schemas`: these are among the largest schemas in the
+builder, and `design-map` collapses each typography and effects block to a single line.
+
+A class aimed at a WooCommerce element's internal markup is not a worse answer, it is the wrong
+one: the element emits its own per-instance CSS from those controls, so the class either loses
+on specificity or wins by accident and breaks on the next plugin update.
+
+`bdox/woo-map` names every store element, what it renders and which design groups it owns.
+`oxygen/get-ecommerce-instructions` covers the build itself (templates, loops, the gallery) —
+call both, they do not overlap.
+
+## 7. Which plugin, and which one not to switch on
+
+`bdox/store-toolbox` lists what a store build needs, what is already installed here, and what is
+missing — plus the two that end a session: a security plugin whose firewall blocks the REST API
+(the agent's only way in), and a page cache that serves the previous version of every page so a
+change that landed correctly reads as a change that failed. Page caching goes on at handover,
+after the last `bdox/regenerate-css`.
 TXT;
 }
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/house-rules',
 		'label'            => 'House Rules',
-		'description'      => 'The site owner\'s build rules for this Oxygen install, on top of oxygen/get-instructions. CALL THIS RIGHT AFTER oxygen/get-instructions, before the first build or edit, and again whenever a class is about to be created. It is short and it is the difference between a page whose styling the client can edit and a page that needs you back for every change. Covers: back up before touching a site you did not build; the Design tab before any CSS class, with the decision procedure and the selector budget this site actually runs on; the Design-tab control paths that are NOT named the way you would guess (design.layout_v2, design.container) and therefore look absent when you filter get-element-schemas by a guessed name; when to use Text versus RichText; and four failure modes that look like broken JavaScript but are not (meta.classes taking ids not names, [hidden] losing to display, stale CSS before regenerate-css, elements hidden from MCP).',
+		'description'      => 'The site owner\'s build rules for this Oxygen install, on top of oxygen/get-instructions. CALL THIS RIGHT AFTER oxygen/get-instructions, before the first build or edit, and again whenever a class is about to be created. It is short and it is the difference between a page whose styling the client can edit and a page that needs you back for every change. Covers: back up before touching a site you did not build; the Design tab before any CSS class, with the decision procedure and the selector budget this site actually runs on; the Design-tab control paths that are NOT named the way you would guess (design.layout_v2, design.container) and therefore look absent when you filter get-element-schemas by a guessed name; when to use Text versus RichText; four failure modes that look like broken JavaScript but are not (meta.classes taking ids not names, [hidden] losing to display, stale CSS before regenerate-css, elements hidden from MCP); the three levels a WooCommerce store is styled from, starting with the settings.woocommerce branch that themes the whole store in one write; and which plugins a store build needs versus the two that will cut the agent off mid-session.',
 		'category'         => 'bdox',
-		/* Adapter MCP niektorych instalacji zamienia puste {} na pusta tablice PHP,
-		   a walidacja odrzuca ja jako „nie obiekt". Stad jedno pole — wolanie
-		   {"section":"all"} przechodzi, a przy okazji da sie wyciagnac jeden rozdzial. */
+		/* Jedno pole, zeby dalo sie wyciagnac jeden rozdzial zamiast calosci. Puste
+		   wolanie tez dziala — default w input_schema podstawia bdox_pack_ability(). */
 		'input_schema'     => array(
 			'type'                 => 'object',
 			'properties'           => array(
 				'section' => array(
 					'type'        => 'string',
-					'description' => 'Numer rozdzialu (0-5) albo "all". Domyslnie caly tekst.',
+					'description' => 'Numer rozdzialu (0-7) albo "all". Domyslnie caly tekst.',
 				),
 			),
 			'additionalProperties' => false,

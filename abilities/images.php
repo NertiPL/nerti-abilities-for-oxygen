@@ -63,7 +63,7 @@ function bdox_pack_attachment_sizes( int $attachment_id ): array {
 	return $out;
 }
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/set-image',
 		'label'            => 'Set Media Library Image',

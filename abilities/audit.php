@@ -133,7 +133,7 @@ function bdox_pack_audit_rules_for( string $css, string $class ): string {
 	return $found;
 }
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/audit-compiled-css',
 		'label'            => 'Audit Compiled CSS',

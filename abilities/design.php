@@ -23,15 +23,22 @@ defined( 'ABSPATH' ) || exit;
  * @param int                  $depth  Recursion guard.
  * @return array<string, string>
  */
-function bdox_pack_flatten_schema( $schema, string $prefix, array $defs, int $depth = 0 ): array {
+function bdox_pack_flatten_schema( $schema, string $prefix, array $defs, int $depth = 0, bool $expand = false ): array {
 	if ( ! is_array( $schema ) || $depth > 12 ) {
 		return array();
+	}
+
+	if ( ! $expand ) {
+		$blob = bdox_pack_collapse_blob( $schema );
+		if ( '' !== $blob ) {
+			return array( $prefix => $blob );
+		}
 	}
 
 	if ( isset( $schema['$ref'] ) && is_string( $schema['$ref'] ) ) {
 		$name = substr( $schema['$ref'], strlen( '#/$defs/' ) );
 		if ( isset( $defs[ $name ] ) ) {
-			return bdox_pack_flatten_schema( $defs[ $name ], $prefix, $defs, $depth + 1 );
+			return bdox_pack_flatten_schema( $defs[ $name ], $prefix, $defs, $depth + 1, $expand );
 		}
 		return array( $prefix => 'ref:' . $name );
 	}
@@ -48,12 +55,48 @@ function bdox_pack_flatten_schema( $schema, string $prefix, array $defs, int $de
 		$out = array();
 		foreach ( $schema['properties'] as $key => $child ) {
 			$sciezka = '' === $prefix ? (string) $key : $prefix . '.' . $key;
-			$out     = array_merge( $out, bdox_pack_flatten_schema( $child, $sciezka, $defs, $depth + 1 ) );
+			$out     = array_merge( $out, bdox_pack_flatten_schema( $child, $sciezka, $defs, $depth + 1, $expand ) );
 		}
 		return $out;
 	}
 
 	return array( $prefix => bdox_pack_schema_atom( $schema, $defs ) );
+}
+
+/**
+ * One line for a whole control group whose shape is always the same.
+ *
+ * Two groups make up most of the volume of a Design tab and neither rewards being read
+ * property by property: the typography block (fontFamily/fontSize/fontWeight/lineHeight
+ * plus the whole `advanced` subtree) and the text-effects block (fill, gradient, the eight
+ * image_* keys, stroke, shadow). They repeat verbatim for every styled part of an element,
+ * so a WooCommerce element with a separate typography group for the current price and the
+ * struck-through old price spends ~70 lines saying the same two things twice.
+ *
+ * Measured 2026-08-23 on EssentialElements\Wooproductprice: 70 lines collapse to 8.
+ * Pass expand=true to design-map when you actually need a leaf inside one of these.
+ *
+ * @param array $schema Schema node.
+ * @return string Summary line, or '' when this node is not a known group.
+ */
+function bdox_pack_collapse_blob( array $schema ): string {
+	$props = isset( $schema['properties'] ) && is_array( $schema['properties'] )
+		? $schema['properties']
+		: array();
+
+	if ( isset( $props['fontFamily'], $props['fontSize'], $props['fontWeight'] ) ) {
+		return 'typography{fontFamily,fontSize,fontWeight,lineHeight'
+			. ( isset( $props['advanced'] ) ? ',advanced{letterSpacing,wordSpacing,textTransform,textWrap,fontStyle,fontWidth,textDirection,decoration}' : '' )
+			. '} @breakpoint — expand:true to see leaves';
+	}
+
+	if ( isset( $props['fill'], $props['stroke_color'] ) ) {
+		return 'text-effects{fill,gradient,image,image_size,image_position,image_repeat,'
+			. 'image_width,image_height,image_top,image_left,stroke_color,stroke_width,text_shadow}'
+			. ' @breakpoint — expand:true to see leaves';
+	}
+
+	return '';
 }
 
 /**
@@ -100,7 +143,7 @@ function bdox_pack_schema_atom( $schema, array $defs ): string {
 	return (string) $typ;
 }
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/design-map',
 		'label'            => 'Design Tab Map',
@@ -117,6 +160,10 @@ ACFW_Pack::ability(
 				'prefix' => array(
 					'type'        => 'string',
 					'description' => 'Only return paths starting with this, e.g. "design" or "design.typography". Empty returns everything.',
+				),
+				'expand' => array(
+					'type'        => 'boolean',
+					'description' => 'Expand the typography and text-effects groups into their individual leaves. Default false, which prints each of them as one summary line — that is what keeps a WooCommerce element readable. Set true only when you need a specific leaf, e.g. letterSpacing.',
 				),
 			),
 			'required'             => array( 'slugs' ),
@@ -144,6 +191,7 @@ ACFW_Pack::ability(
 			}
 
 			$prefix   = isset( $input['prefix'] ) ? (string) $input['prefix'] : '';
+			$expand   = ! empty( $input['expand'] );
 			$elementy = array();
 			$brakuje  = array();
 
@@ -159,7 +207,9 @@ ACFW_Pack::ability(
 				$plaski = bdox_pack_flatten_schema(
 					array( 'properties' => isset( $schema['properties'] ) ? $schema['properties'] : array() ),
 					'',
-					$defs
+					$defs,
+					0,
+					$expand
 				);
 
 				if ( '' !== $prefix ) {

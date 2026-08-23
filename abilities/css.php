@@ -9,7 +9,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/regenerate-css',
 		'label'            => 'Regenerate Compiled CSS',
@@ -65,7 +65,7 @@ ACFW_Pack::ability(
 	)
 );
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/merge-css-selector',
 		'label'            => 'Merge CSS Selector Properties',

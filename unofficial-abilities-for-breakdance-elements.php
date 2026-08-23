@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Unofficial Abilities for Breakdance Elements for Oxygen
  * Plugin URI:        https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements
- * Description:        MCP ability pack for Oxygen 6.x + Breakdance Elements. Unhides the core elements the built-in Oxygen MCP tools cannot see (Section, Div, Heading, Text, RichText, TextLink, WrapperLink, Icon, Image2, code blocks), and adds what the built-in tools lack: CSS cache regeneration, partial global-settings patching, non-destructive selector merging, editor element visibility, a setup/stale-cache report, and a per-element report of the default CSS you must override for a design to survive.
- * Version:           0.11.0
+ * Description:        MCP ability pack for Oxygen 6.x + Breakdance Elements, and on a store also Breakdance WooCommerce. Unhides the core elements the built-in Oxygen MCP tools cannot see (Div, Text, RichText, TextLink, WrapperLink, Image2, code blocks), and adds what the built-in tools lack: the house rules and the Design-tab map that keep a build editable by the site owner, a WooCommerce element atlas, a store plugin toolbox, CSS cache regeneration, partial global-settings patching, non-destructive selector merging, editor element visibility, a setup/stale-cache report, and a per-element report of the default CSS you must override for a design to survive.
+ * Version:           0.12.0
  * Requires Plugins:  agent-connector-for-wp, oxygen
  * Requires PHP:      8.1
  * Author:            Nerti
@@ -19,17 +19,20 @@
  *
  * WHY THIS PACK EXISTS
  * --------------------
- * Measured 2026-08-21 on Oxygen 6.2.0-beta.5 + Breakdance Elements for Oxygen
- * 1.1.0.beta.1, WordPress 7.1, PHP 8.2.29:
+ * Re-measured 2026-08-23 on Oxygen 6.2.0-beta.6 + Breakdance Elements for Oxygen
+ * 1.1.0.beta.4 + Breakdance WooCommerce for Oxygen 1.1.0.beta.1, WordPress 7.1,
+ * PHP 8.1.34:
  *
- *   count( \Breakdance\Elements\get_element_classnames() )     => 186
- *   count( breakdance_mcp_visible_element_classnames() )       => 151  (pack filter removed)
- *   count( breakdance_mcp_visible_element_classnames() )       => 164  (pack active)
+ *   count( \Breakdance\Elements\get_element_classnames() )     => 188
+ *   count( breakdance_mcp_visible_element_classnames() )       => 155  (pack filter removed)
+ *   count( breakdance_mcp_visible_element_classnames() )       => 165  (pack active)
  *
- * The 13 the pack restores are Section, Div, Heading, Icon, Text, RichText,
- * TextLink, WrapperLink, Image2, CodeBlock, CssCode, HtmlCode, PhpCode — the
- * elements every page is built from. Without them get-element-schemas returns
- * them as `missing` and edit-post rejects the element_type.
+ * The 10 it restores on this version are Div, Text, RichText, TextLink,
+ * WrapperLink, Image2, CodeBlock, CssCode, HtmlCode, PhpCode — the elements every
+ * page is built from. Without them get-element-schemas returns them as `missing`
+ * and edit-post rejects the element_type. Section, Heading and Icon stay on the
+ * restore list but no longer need it: they are visible on their own here, and the
+ * filter skips whatever is already in the list.
  *
  * TWO INDEPENDENT BANS PRODUCE THAT GAP, AND THEY OVERLAP:
  *
@@ -38,16 +41,18 @@
  *      WrapperLink, Text, TextLink, Image, Image2, RichText, FSvgIcon, SvgIcon.
  *      Section, Heading and Icon are NO LONGER on it (they were on beta.2).
  *   b) the `oxygen_builder_hidden_elements` WP option, written by
- *      \Breakdance\BreakdanceOxygen\addDefaultHiddenElements() — 10 entries,
- *      still populated on this install: Section, Div, Heading, Text, TextLink,
- *      WrapperLink, Icon, RichText, CodeBlock, Image2.
+ *      \Breakdance\BreakdanceOxygen\addDefaultHiddenElements() — 10 entries
+ *      on a fresh install. On the reference store (2026-08-23) it holds exactly
+ *      one, EssentialElements\MissingElement, so there the whole gap comes from
+ *      (a). Read the live value with bdox/element-visibility instead of assuming
+ *      either shape.
  *
  * (b) IS NOT INDEPENDENT OF MCP — earlier versions of this comment said it was,
  * and that was wrong. admin/settings-page/tabs/elements.php hangs
  * filter_builder_elements() on `breakdance_builder_elements` at priority 10, and
  * mcp/schemas/elements.php runs the MCP list through the SAME filter. Measured:
  * adding EssentialElements\Button to the option dropped oxygen-get-element-slugs
- * from 164 to 163 and made get-element-schemas refuse it. Hiding an element in
+ * by one and made get-element-schemas refuse it. Hiding an element in
  * Oxygen → Settings → Elements therefore hides it from the agent too.
  * Corollary for anyone building with an agent: BUILD FIRST, HIDE LAST.
  *
@@ -90,7 +95,8 @@
  * Soflyy's stated intent is that the fundamentals replace these elements. On
  * BEFO 1.1.0.beta.1 the fundamentals DO NOT EXIST: class_exists() is false for
  * EssentialElements\FText, FImage, FRichText, FTextLink, FSvgIcon2, FHtmlCode
- * and EssentialElements\ContainerLink (measured 2026-08-21). The native
+ * and EssentialElements\ContainerLink (re-measured 2026-08-23 on BEFO
+ * 1.1.0.beta.4: still all false). The native
  * OxygenElements replacements do exist but carry NO design section — measured
  * via oxygen-get-element-schemas: EssentialElements\{Section,Heading,Text,
  * Image2,Button} all expose `design`, while OxygenElements\{Container,Text,
@@ -114,7 +120,7 @@ defined( 'ABSPATH' ) || exit;
 
 define( 'BDOX_PACK_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BDOX_PACK_FILE', __FILE__ );
-define( 'BDOX_PACK_VERSION', '0.11.0' );
+define( 'BDOX_PACK_VERSION', '0.12.0' );
 
 /**
  * The elements the built-in Oxygen MCP layer hides from agents.

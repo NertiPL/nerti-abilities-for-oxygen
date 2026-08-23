@@ -144,7 +144,7 @@ function bdox_pack_override_rules(): array {
 	);
 }
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/element-defaults',
 		'label'            => 'Element Defaults And Required Overrides',

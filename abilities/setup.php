@@ -9,7 +9,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/setup-report',
 		'label'            => 'Builder Setup Report',
@@ -139,7 +139,7 @@ ACFW_Pack::ability(
 	)
 );
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/builder-hidden-elements',
 		'label'            => 'Builder Hidden Elements',

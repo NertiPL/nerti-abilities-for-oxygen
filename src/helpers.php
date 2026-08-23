@@ -268,3 +268,36 @@ function bdox_pack_compiled_typography( string $file = '' ): array {
 			: 'ok',
 	);
 }
+
+/**
+ * Register an ability with the empty-input fix applied.
+ *
+ * Every ability in this pack goes through here instead of calling
+ * ACFW_Pack::ability() directly, because of one measured failure that looks
+ * like a broken ability and is not:
+ *
+ *   mcp-adapter-execute-ability with `parameters: {}` reaches WP_Ability::execute()
+ *   as NULL, not as an empty object. execute() then runs normalize_input()
+ *   (which substitutes input_schema['default'] when the input is null) and only
+ *   afterwards validate_input(). With no `default` declared, the null survives
+ *   normalization and rest_validate_value_from_schema rejects it with
+ *   "input is not of type object" — so bdox/regenerate-css, bdox/setup-report,
+ *   bdox/element-visibility and bdox/builder-hidden-elements ALL failed when
+ *   called the way their own descriptions tell an agent to call them: with no
+ *   arguments. Measured 2026-08-23 against WP 7.1
+ *   (wp-includes/abilities-api/class-wp-ability.php).
+ *
+ * Declaring `default: {}` makes normalization hand the callback an empty array,
+ * which validates and which every callback here already handles.
+ *
+ * @param array $def Ability definition, as ACFW_Pack::ability() takes it.
+ * @return void
+ */
+function bdox_pack_ability( array $def ): void {
+	if ( isset( $def['input_schema'] ) && is_array( $def['input_schema'] )
+		&& ! array_key_exists( 'default', $def['input_schema'] ) ) {
+		$def['input_schema']['default'] = array();
+	}
+
+	ACFW_Pack::ability( $def );
+}

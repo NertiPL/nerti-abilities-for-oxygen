@@ -17,7 +17,7 @@ ACFW_Pack::category(
 	)
 );
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/element-visibility',
 		'label'            => 'Element Visibility Report',

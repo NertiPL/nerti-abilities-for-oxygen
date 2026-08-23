@@ -9,7 +9,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/get-global-settings',
 		'label'            => 'Read Global Settings',
@@ -67,7 +67,7 @@ ACFW_Pack::ability(
 	)
 );
 
-ACFW_Pack::ability(
+bdox_pack_ability(
 	array(
 		'name'             => 'bdox/patch-global-settings',
 		'label'            => 'Patch Global Settings',

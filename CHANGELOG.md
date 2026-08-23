@@ -2,6 +2,33 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.10.0 — 2026-08-23
+
+### Added
+
+- **`bdox/design-map`** — jedna linia na kontrolkę zamiast pełnego schematu JSON. Powód powstania jest pomiarowy, nie estetyczny: `get-element-schemas` na jednym elemencie zwraca 5–15 tys. tokenów, w większości `$defs` i powtarzane opakowania breakpointów. Agent, którego na to nie stać, filtruje schemat po zgadywanych ścieżkach, dostaje pustkę i **wyciąga wniosek, że element nie ma zakładki Design** — po czym pisze klasę CSS na coś, co element stylowałby sam.
+
+  To nie jest hipoteza. W trakcie przenoszenia serwisu Laboria wywołanie `get-element-schemas` z `paths: ["design.layout", "design.borders", "design.effects"]` na `EssentialElements\Div` zwróciło wszystkie trzy w `unmatched_paths`, co wyglądało na dowód, że Div ma w zakładce Design tylko marginesy i tło. Prawdziwe nazwy to **`design.layout_v2`** (pełny flex i grid, odstępy, wyrównania) i **`design.container`** (padding, obramowania, promień, cień). Element ma komplet kontrolek; brakowało tylko sposobu, żeby je zobaczyć bez czytania 12 tys. tokenów.
+
+  Ścieżki responsywne zwijają się do jednej linii z dopiskiem `@breakpoint`. Filtr `prefix` zawęża do jednej zakładki.
+
+## 0.9.0 — 2026-08-23
+
+### Added
+
+- **`bdox/audit-compiled-css`** — finds design values that were **saved but never compiled**. This is the builder's most expensive failure mode: the write tool returns `success`, the editor shows the value, and the stylesheet simply does not have it. Three independent instances turned up in one site transfer, each costing a separate debugging session:
+  - the outline colour of every `secondary` button (`buttons.secondary.border_color` is stored and ignored — the outline is derived from the text colour),
+  - the font family and weight of **every** button (`buttons.typography.*` stored on three levels, compiler emits `--bde-button-font-weight: 500` and no `font-family` at all, so buttons silently fall back to the body font),
+  - every border colour set on a `:hover` state.
+
+  The ability walks class selectors and their state children, compares stored `breakpoint_base` properties against the compiled `selectors.css`, and reports what is missing with the reason. It excludes `@media` blocks on purpose — a base-breakpoint value that only exists at some width is exactly the bug being hunted.
+
+  Measured on a control selector created and deleted for the test: `.bdox-proba{border:1px solid #ccc}` plus `.bdox-proba:hover{border-color:#f00}` compiles the base rule in full and **produces no `:hover` rule at all**.
+
+### Fixed
+
+- **The border-colour rule was documented too broadly and is now measured precisely.** A colour-only border (no width, no style) behaves differently depending on where it sits: on a **base** selector the compiler falls back to the `border-color` longhand and the value works; on a **state** selector (`&:hover`) it emits nothing. The state is where colour-only borders are normally written, since the width is inherited from the resting state — which is why this looks like "hover does not work" rather than like a border problem.
+
 ## 0.8.1 — 2026-08-21
 
 ### Added

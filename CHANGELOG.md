@@ -2,6 +2,20 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.15.1 — 2026-08-23
+
+### Fixed
+
+- **Dwie paczki abilities na jednej witrynie kładły ją białą stroną.** `Fatal error: Cannot declare class ACFW_Pack, because the name is already in use`. Rejestr `ACFW_Pack` był od początku pisany tak, żeby paczki się nim dzieliły — pierwsza deklaruje klasę, reszta ją zastaje — i miał na to strażnika `if ( class_exists( 'ACFW_Pack' ) ) return;`. **Strażnik nie miał szansy zadziałać ani razu.**
+
+  Klasa zadeklarowana bezwarunkowo na najwyższym poziomie pliku jest wiązana przez PHP **na etapie kompilacji tego pliku** (early binding), czyli zanim wykona się jakikolwiek kod w środku. Kiedy druga paczka kompilowała swój `bootstrap.php`, nazwa była już zajęta i PHP przerywało kompilację — do `class_exists()` nigdy nie dochodziło. Dlatego komunikat brzmi „Cannot declare class", a nie „Cannot redeclare class": to błąd kompilacji, nie wykonania.
+
+  Klasa zadeklarowana **wewnątrz bloku `if`** nie podlega early bindingowi — powstaje dopiero, gdy wykonanie do niej dojdzie. Dopiero wtedy strażnik cokolwiek znaczy. Deklaracja jest teraz opakowana w `if ( ! class_exists( 'ACFW_Pack' ) ) : … endif;`.
+
+  Zmierzone 2026-08-23 na `laboria.local`, gdzie stoją trzy paczki z tym samym rejestrem: `nerti-abilities-for-oxygen`, `unofficial-abilities-for-contact-form-7`, `unofficial-abilities-for-wordpress-seo`. Na witrynie z jedną paczką usterka nie występuje, dlatego przeżyła do teraz.
+
+  **Ta sama poprawka jest potrzebna w każdej innej paczce z tym rejestrem** — dopóki którakolwiek deklaruje klasę bezwarunkowo, to ONA wywróci witrynę, kiedy skompiluje się jako druga.
+
 ## 0.15.0 — 2026-08-23
 
 Wiedza z przeniesienia Laborii, przepisana z notatek projektu do paczki — czyli tam, gdzie agent na cudzej witrynie w ogóle ją zobaczy.

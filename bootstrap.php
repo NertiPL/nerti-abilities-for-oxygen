@@ -13,9 +13,24 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-if ( class_exists( 'ACFW_Pack' ) ) {
-	return;
-}
+/*
+ * Deklaracja WARUNKOWA, i to jest cala poprawka.
+ *
+ * Klasa zadeklarowana bezwarunkowo na najwyzszym poziomie pliku jest wiazana przez
+ * PHP JUZ NA ETAPIE KOMPILACJI tego pliku (early binding), czyli ZANIM wykona sie
+ * jakikolwiek kod w srodku - w tym straznik `if ( class_exists(...) ) return;`.
+ * Kiedy druga paczka abilities kompilowala swoj bootstrap, nazwa byla juz zajeta
+ * i PHP przerywalo kompilacje bledem "Cannot declare class ACFW_Pack, because the
+ * name is already in use" - straznik nie mial szansy sie odezwac. Objaw: biala
+ * strona na kazdej witrynie, gdzie stoja dwie paczki naraz.
+ *
+ * Klasa zadeklarowana WEWNATRZ bloku `if` nie podlega early bindingowi: powstaje
+ * dopiero, gdy wykonanie do niej dojdzie. Dopiero wtedy straznik cokolwiek znaczy.
+ *
+ * Zmierzone 2026-08-23 na laboria.local, trzy paczki: nerti-abilities-for-oxygen,
+ * unofficial-abilities-for-contact-form-7, unofficial-abilities-for-wordpress-seo.
+ */
+if ( ! class_exists( 'ACFW_Pack' ) ) :
 
 final class ACFW_Pack {
 
@@ -78,3 +93,5 @@ final class ACFW_Pack {
 		);
 	}
 }
+
+endif;

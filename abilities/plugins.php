@@ -315,7 +315,7 @@ bdox_pack_ability(
 					'active_plugins'  => $aktywne,
 					'woocommerce'     => class_exists( 'WooCommerce' ),
 					'woo_elements'    => class_exists( 'EssentialElements\\Wooproductprice' ),
-					'backup_ability'  => function_exists( 'udp_ab_definicje' ),
+					'backup_ability'  => function_exists( 'bdox_pack_backup_guard' ),
 				),
 				'catalog'  => $out,
 				'warnings' => bdox_pack_toolbox_warnings(),

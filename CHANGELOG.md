@@ -2,6 +2,12 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.13.1 — 2026-08-23
+
+### Fixed
+
+- **`bdox/store-toolbox` meldowal `backup_ability: false` na witrynie, ktora ma te abilities.** Sprawdzal `udp_ab_definicje()` — funkcje ze starego pliku piaskownicy, ktora w 0.13.0 zmienila nazwe razem z przeniesieniem kopii zapasowych do paczki. Raport twierdzil wiec, ze witryna nie ma czym zrobic kopii, dokladnie tam, gdzie ma. Sprawdza teraz `bdox_pack_backup_guard()`.
+
 ## 0.13.0 — 2026-08-23
 
 ### Added

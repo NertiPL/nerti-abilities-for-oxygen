@@ -171,6 +171,44 @@ ustawionych na `custom` to dwadzieścia miejsc do zmiany, kiedy klient poprosi o
 Nie zgaduj tej tabeli dla elementu, którego tu nie ma. `bdox/design-map` z `groups_only: true`
 przyjmuje wiele slugów naraz i daje dwie–trzy linie na element: najpierw dowiadujesz się, GDZIE
 kontrolka siedzi, potem dopiero pytasz o jej wnętrze.
+
+## 9. Puste pole w zakładce Design nie znaczy „bez stylu"
+
+To jest jedna z niewielu rzeczy, które trzeba znać, zanim się zacznie, bo objaw pojawia się
+dopiero na froncie i zwykle nie na tym ekranie, na którym się pracowało. Kontrolka zostawiona
+pusta nie wyłącza stylu — **oddaje decyzję domyślnej wartości**, a te są widoczne.
+
+Zmierzone 2026-08-23 na tej instalacji:
+
+| Zostawisz puste | Co zobaczysz | Gdzie to naprawić |
+|---|---|---|
+| kolor hoveru odnośnika | `a:hover` (0,1,1) bije twoją klasę (0,1,0) — link zmienia kolor pod kursorem na globalny | `design.text_colors.link` na Section/Div, albo `colors.links_hover` globalnie, albo **klasa i jej `:hover`** razem (0,2,0) |
+| podkreślenie odnośnika | podkreślenie z przeglądarki — **nikt go nie napisał**. Reguła globalna ustawia odnośnikowi wyłącznie kolor, `.bde-text-link` tylko `display:flex`, a `normalize.css` Oxygena rusza w `a` jedynie `background-color` | jeden selektor `a { text-decoration: none }` wstawiony jako PIERWSZY na liście, żeby klasy projektu nadal go biły — albo `text_decoration` na zakładce Design TextLinku |
+| kolor przycisku | zestaw `--bde-button-*` z ustawień globalnych, razem z hoverem, obrysem i przejściem | `buttons.primary` / `buttons.secondary` w ustawieniach globalnych, raz dla całej witryny |
+| interlinia | Breakdance nie dziedziczy jej — zostawia własną, dopóki nie ustawisz jej wprost. Zaobserwowane przy przenoszeniu Laborii: menu i stopka wychodziły o ~3 px wyższe niż w projekcie | ustaw `lineHeight` jawnie w typografii elementu albo w presecie typografii |
+
+Przyciski są tu wyjątkiem potwierdzającym regułę: `.button-atom--primary/secondary/custom`
+**ustawiają** `text-decoration: none`. Dlatego odnośnik „ostylowany na przycisk" ręcznie zawsze
+wygląda inaczej niż prawdziwy Button — bo prawdziwy ma zdjęte podkreślenie, a twój nie.
+
+`bdox/element-defaults` wypisuje pełną listę takich domyślnych razem ze specyficznością
+i poprawką, która przeżyje aktualizację wtyczki. Wołaj ją, zanim zaczniesz walczyć z CSS-em,
+którego nie napisałeś.
+
+### Trzy inne rzeczy, które wypełniają się same
+
+- **`@media` spoza zarejestrowanych breakpointów jest po cichu pomijane.** Progi tej instalacji
+  to 1119, 1023, 767 i 479 — zapytanie skopiowane z Tailwinda (640, 1280) zniknie, a import
+  zgłosi sukces. Sprawdzaj `oxygen/get-breakpoints` i kopiuj zapytania dosłownie; dokładny próg
+  spoza listy wpisuj przez `custom_css` w `bdox/merge-css-selector`.
+- **Animacji wejścia nie zapiszesz przez `edit-post`** — `settings.animations` zostanie
+  odrzucone. Służy do tego `oxygen/set-element-animations`. Przy przenoszeniu Laborii wyszły
+  przy okazji dwie rzeczy: `offset: 0` nie znaczy zera, bo skrypt wejścia podstawia wtedy własne
+  120 px, więc żeby trafić w konkretny próg, trzeba go wpisać jawnie; a przy
+  `prefers-reduced-motion` Breakdance nie robi przenikania, tylko od razu pokazuje element.
+- **`insert-stylesheet` ZASTĘPUJE właściwości selektora, nie dokleja.** Import reguły z jedną
+  deklaracją kasuje wszystkie pozostałe w tym breakpoincie. Do zmiany istniejącej klasy jest
+  `bdox/merge-css-selector`, który scala per breakpoint.
 TXT;
 }
 
@@ -178,7 +216,7 @@ bdox_pack_ability(
 	array(
 		'name'             => 'bdox/house-rules',
 		'label'            => 'House Rules',
-		'description'      => 'The site owner\'s build rules for this Oxygen install, on top of oxygen/get-instructions. CALL THIS RIGHT AFTER oxygen/get-instructions, before the first build or edit, and again whenever a class is about to be created. It is short and it is the difference between a page whose styling the client can edit and a page that needs you back for every change. Covers: back up before touching a site you did not build; the Design tab before any CSS class, with the decision procedure and the selector budget this site actually runs on; the Design-tab control paths that are NOT named the way you would guess (design.layout_v2, design.container) and therefore look absent when you filter get-element-schemas by a guessed name; when to use Text versus RichText; four failure modes that look like broken JavaScript but are not (meta.classes taking ids not names, [hidden] losing to display, stale CSS before regenerate-css, elements hidden from MCP); the three levels a WooCommerce store is styled from, starting with the settings.woocommerce branch that themes the whole store in one write; which plugins a store build needs versus the two that will cut the agent off mid-session; and a measured table of WHERE each design control lives on Section, Div, Grid, Text, Image2 and Button — including the two that everyone gets wrong, padding sitting in a different branch on Section than on Div, and heading colour not cascading from a parent because global settings set it on the tag.',
+		'description'      => 'The site owner\'s build rules for this Oxygen install, on top of oxygen/get-instructions. CALL THIS RIGHT AFTER oxygen/get-instructions, before the first build or edit, and again whenever a class is about to be created. It is short and it is the difference between a page whose styling the client can edit and a page that needs you back for every change. Covers: back up before touching a site you did not build; the Design tab before any CSS class, with the decision procedure and the selector budget this site actually runs on; the Design-tab control paths that are NOT named the way you would guess (design.layout_v2, design.container) and therefore look absent when you filter get-element-schemas by a guessed name; when to use Text versus RichText; four failure modes that look like broken JavaScript but are not (meta.classes taking ids not names, [hidden] losing to display, stale CSS before regenerate-css, elements hidden from MCP); the three levels a WooCommerce store is styled from, starting with the settings.woocommerce branch that themes the whole store in one write; which plugins a store build needs versus the two that will cut the agent off mid-session; and a measured table of WHERE each design control lives on Section, Div, Grid, Text, Image2 and Button — including the two that everyone gets wrong, padding sitting in a different branch on Section than on Div, and heading colour not cascading from a parent because global settings set it on the tag; and why an EMPTY control in the Design tab is not the absence of a style but a vote for the default — which is how links end up underlined and changing colour on hover when nobody wrote either rule.',
 		'category'         => 'bdox',
 		/* Jedno pole, zeby dalo sie wyciagnac jeden rozdzial zamiast calosci. Puste
 		   wolanie tez dziala — default w input_schema podstawia bdox_pack_ability(). */
@@ -187,7 +225,7 @@ bdox_pack_ability(
 			'properties'           => array(
 				'section' => array(
 					'type'        => 'string',
-					'description' => 'Numer rozdzialu (0-8) albo "all". Domyslnie caly tekst.',
+					'description' => 'Numer rozdzialu (0-9) albo "all". Domyslnie caly tekst.',
 				),
 			),
 			'additionalProperties' => false,

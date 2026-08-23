@@ -2,6 +2,20 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.15.0 — 2026-08-23
+
+Wiedza z przeniesienia Laborii, przepisana z notatek projektu do paczki — czyli tam, gdzie agent na cudzej witrynie w ogóle ją zobaczy.
+
+### Added
+
+- **`bdox/house-rules` rozdział 9: puste pole w zakładce Design nie znaczy „bez stylu".** Kontrolka zostawiona pusta nie wyłącza stylu — oddaje decyzję wartości domyślnej, a te są widoczne. Tabela zmierzona 2026-08-23 na żywej instalacji: kolor hoveru odnośnika, podkreślenie odnośnika, kolor przycisku, interlinia. Plus trzy rzeczy, które wypełniają się same: `@media` spoza zarejestrowanych breakpointów jest **po cichu pomijane** przy raporcie sukcesu, animacji wejścia nie zapisze `edit-post` (jest `oxygen/set-element-animations`, a `offset: 0` znaczy 120 px), oraz `insert-stylesheet` zastępuje właściwości selektora zamiast je doklejаć.
+
+- **Dwie nowe reguły w `bdox/element-defaults`, obie oznaczone jako obowiązkowe:**
+
+  **`a:hover` bije twoją klasę.** Globalna reguła hoveru ma specyficzność (0,1,1), płaska klasa projektu (0,1,0). Klasa wygrywa w spoczynku i **przegrywa w chwili, gdy kursor dojedzie** — odnośnik zmienia kolor na globalny. Objaw widać tylko pod kursorem, więc przechodzi przez przegląd. Zmierzone: `--bde-links-color-hover` miał `#F58B20`, podczas gdy klasa mówiła co innego. Poprawka: nigdy nie ustawiaj koloru odnośnika bez hoveru w tym samym ruchu — najlepiej `design.text_colors.link` na Section/Div, bo to kontrolka, którą klient też widzi.
+
+  **Podkreślenie odnośnika, którego nikt nie napisał.** Reguła globalna daje odnośnikowi wyłącznie kolor, `.bde-text-link` tylko `display:flex`, a `normalize.css` Oxygena rusza w `a` jedynie `background-color`. Zostaje domyślne podkreślenie przeglądarki, niezależnie od tego, czy Modern Normalize jest włączony. Przyciski są wyjątkiem — `.button-atom--*` **ustawiają** `text-decoration: none`, i dlatego odnośnik „ostylowany na przycisk" ręcznie zawsze wygląda inaczej niż prawdziwy Button.
+
 ## 0.14.0 — 2026-08-23
 
 Wydanie o jednym temacie: **żeby agent wiedział, gdzie co jest, i żeby płacił za to mniej tokenów.**

@@ -54,6 +54,22 @@ function bdox_pack_override_rules(): array {
 			'must'        => true,
 		),
 		array(
+			'selector'    => 'a:hover, .button-atom--text:hover',
+			'source'      => 'global-settings.css',
+			'declaration' => 'color: var(--bde-links-color-hover)',
+			'breaks'      => 'THE most common "my colour does not work" on this stack, and it only shows on hover, which is why it survives review. Specificity: the global hover rule is (0,1,1); a flat project class is (0,1,0). So a class that sets a link colour wins at rest and LOSES the moment the pointer arrives, and the link flips to the global hover colour. Leaving the hover empty in the Design tab does not mean "no hover" - it means the global one applies. Measured 2026-08-23: --bde-links-color-hover was #F58B20 while the class said something else entirely.',
+			'fix'         => 'Never set a link colour without setting its hover in the same breath. Three routes, in order of preference: (1) design.text_colors.link on the parent Section or Div - a Design-tab control, so the client can change it; (2) colors.links and colors.links_hover in global settings, for the site-wide answer; (3) if it has to be a class, declare BOTH .klasa and .klasa:hover - the class hover is (0,2,0) and beats the global (0,1,1).',
+			'must'        => true,
+		),
+		array(
+			'selector'    => 'a { text-decoration }',
+			'source'      => 'nothing - and that is the point',
+			'declaration' => 'no rule at all',
+			'breaks'      => 'Links come out underlined and nobody wrote that underline. Measured 2026-08-23: the global rule is "a,.button-atom--text{color:var(--bde-links-color)}" - colour only. EssentialElements\\TextLink emits ".bde-text-link{display:flex}" and nothing about decoration. Oxygen\'s own normalize.css touches only background-color on "a". So the browser default underline stands, whether Modern Normalize is on or off. The buttons are the exception: .button-atom--primary/secondary/custom do set text-decoration:none, which is exactly why a link "styled like a button" by hand looks wrong next to a real Button element.',
+			'fix'         => 'Decide it once, per project, not per link. Either register one selector for links inside content (a { text-decoration: none } placed FIRST in the selector list so project classes still override it) or set text_decoration explicitly on the TextLink Design tab wherever a link must be undecorated. Do not fight it per element: twenty links is twenty places to forget one.',
+			'must'        => true,
+		),
+		array(
 			'selector'    => '.bde-text-link > *',
 			'source'      => 'EssentialElements\\TextLink',
 			'declaration' => 'margin: 0; color: currentColor',

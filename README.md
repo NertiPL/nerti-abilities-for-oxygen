@@ -114,6 +114,7 @@ You get **nothing** back, not even the parts that validate. The cause is inside 
 | `bdox/house-rules` | The build rules served at the MCP boundary instead of from a skill file a foreign agent never sees: Design tab before any CSS class, the selector budget a real store runs on, the control paths nobody guesses, Text vs RichText, the four failures that look like broken JavaScript, and the three levels a WooCommerce store is styled from. Call it right after `oxygen/get-instructions`. |
 | `bdox/design-map` | Every control an element exposes, one line each, instead of the 5–15k tokens `get-element-schemas` returns for one element. Typography and text-effects groups collapse to a single line (`expand: true` opens them), which is what makes a WooCommerce element readable at all: `Wooproductprice` goes from ~70 lines to 8. |
 | `bdox/woo-map` | Atlas of the store elements — what each one renders, when to reach for it, and its design groups read live from the schema. Registers only when Breakdance WooCommerce for Oxygen is active. Complements `oxygen/get-ecommerce-instructions`, which covers building a store; this one covers styling it. |
+| `updraft/backup-now` + `updraft/list-backups` | A restore point before the work starts, and an honest answer to whether it exists. `backup-now` returns when the job is QUEUED, not when the backup exists — it schedules the UpdraftPlus hook through WP-Cron, because firing it synchronously blew past the 120-second MCP timeout mid-backup on a store with media. Poll `list-backups` with `newer_than` until an entry appears. Registers only where UpdraftPlus is active. |
 | `bdox/store-toolbox` | Which plugins a store build needs, what each is for, which are already active here, and the two that must not be switched on while an agent works: a security plugin whose firewall blocks the REST API, and a page cache that serves the previous version of every page. |
 | `bdox/element-visibility` | The three bans, reported separately: what Oxygen hardcodes, what a human hid in the Elements panel, what this pack restored. The answer to "why is my element in `missing`" — and the warning that the Elements panel is not editor-only. |
 | `bdox/element-defaults` | Live `defaultCss()` per element, parsed into declarations with specificity, plus the measured must-override list: what breaks and the fix that survives an update. |
@@ -127,6 +128,27 @@ You get **nothing** back, not even the parts that validate. The cause is inside 
 | `bdox/set-image` | Makes a media-library image render at a named size, with a `srcset`. Through `edit-post` it cannot: the element resolves `content.image.media.sizes[size].url`, but `media` is schema'd with `additionalProperties: false` and no `sizes`, so the lookup falls through to the 540×540 grey placeholder while the call reports success. Also handles `alt`, which the element reads from the attachment — not from the tree — and which is empty on most uploads. |
 
 ## Install
+
+**One plugin, one install, on every project.** Each ability group registers only where its plugin is active: the WooCommerce map only on a store, the backup abilities only where UpdraftPlus is installed. A site with neither gets the Oxygen half and nothing breaks.
+
+Install order on a new build:
+
+1. `agent-connector-for-wp` — the host. Owns authentication, permissions, the audit trail, and the PHP sandbox. Without it this plugin registers nothing at all (by design: no ability here carries its own `permission_callback`, because a second gate is a second thing that can drift out of step with the first).
+2. `oxygen` + `breakdance-elements-for-oxygen` — the builder and the elements with real Design tabs.
+3. `breakdance-woocommerce-for-oxygen` + `woocommerce` — only on a store.
+4. `updraftplus` — before the first writing change on a site you did not build.
+5. **this plugin.**
+
+### Handover: what comes off before the client gets the site
+
+The agent half is scaffolding, not product. At handover, in this order:
+
+1. Finish building. **Then** hide elements from the client (`bdox/builder-hidden-elements`) — not before: the same option hides them from the agent too.
+2. `bdox/regenerate-css` one last time.
+3. Turn page caching on — not earlier, or every change you made would have read as a change that failed.
+4. Deactivate and delete: this plugin, `agent-connector-for-wp`, and any dummy-content plugin.
+5. `nerti-cookies` stays. It is the client's, not the agent's.
+
 
 Download the `.zip` from the [latest release](https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements/releases/latest) and upload it under **Plugins → Add New → Upload Plugin**. Requires `agent-connector-for-wp` and `oxygen`.
 

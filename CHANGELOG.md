@@ -2,6 +2,22 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.13.0 — 2026-08-23
+
+### Added
+
+- **`updraft/backup-now` i `updraft/list-backups` wchodzą do paczki.** Dotąd były osobnym plikiem piaskownicy Agent Connectora, który trzeba było wgrywać osobno na każdej witrynie. Teraz są tu, rejestrują się **tylko tam, gdzie UpdraftPlus jest aktywny**, i instalują się razem z resztą — jeden plik ZIP, jedna instalacja, komplet abilities na nowym projekcie.
+
+  Ta paczka **nie modyfikuje UpdraftPlusa**. Woła jego własny publiczny hak backupu, dokładnie tak jak robi to przycisk „Backup Now" w panelu.
+
+  Opis `backup-now` mówi teraz wprost to, czego wcześniej nie mówił: przy dziesiątkach gigabajtów mediów pełna kopia idzie **kilkadziesiąt minut**, więc przy zmianie treści, selektorów albo ustawień globalnych właściwym zakresem jest `database` — kończy się w kilkadziesiąt sekund i jest prawdziwym punktem powrotu dla tej klasy zmian. Zmierzone 2026-08-23 na sklepie z ~25 GB `uploads`, gdzie kopia `all` po godzinie wciąż trwała.
+
+### Changed
+
+- **Nazwa wtyczki: „Nerti Abilities for Oxygen (Elements, WooCommerce, Backups)".** Paczka dawno przestała dotyczyć samych Breakdance Elements. Slug katalogu i repozytorium zostają bez zmian — to po nich WordPress rozpoznaje aktualizacje, a przemianowanie zerwałoby je na każdej witrynie, gdzie paczka już stoi.
+
+- **README ma kolejność instalacji na nowym projekcie i listę zdejmowania przed oddaniem strony.** Kolejność zdejmowania nie jest dowolna: najpierw skończ budować, **potem** chowaj elementy przed klientem (ta sama opcja chowa je też przed agentem), potem ostatni `bdox/regenerate-css`, potem włącz cache stron, a dopiero na końcu usuń tę wtyczkę i Agent Connectora. `nerti-cookies` zostaje — jest klienta, nie agenta.
+
 ## 0.12.1 — 2026-08-23
 
 ### Fixed

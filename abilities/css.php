@@ -13,7 +13,7 @@ bdox_pack_ability(
 	array(
 		'name'             => 'bdox/regenerate-css',
 		'label'            => 'Regenerate Compiled CSS',
-		'description'      => 'Recompile the builder\'s CSS files. Oxygen still ships no MCP tool for this — checked 2026-08-21 against the 49 tools of the 6.2.0-beta.5 server. Its own save paths do regenerate (data/save.php calls generateCacheForPost on a document save and generateCacheForGlobalSettings on a settings or selector save), so you need this only when the data changed outside those paths, or when the compiled files are simply stale. Run it after editing element trees or global settings directly, and whenever the front end does not match what the builder shows — a stale cache is the single most common cause of "the plugin update broke the site", because the compiled files can predate a plugin update and still carry its old default CSS. Pass post_ids to limit the run, omit it to do every builder post. Returns the resulting file sizes so you can confirm the compile actually produced output: a 0-byte variables.css or a missing post-<id>.css means the run did not work.',
+		'description'      => 'Recompile the builder\'s CSS files. Oxygen still ships no MCP tool for this — checked 2026-08-21 against the 49 tools of the 6.2.0-beta.5 server. Its own save paths do regenerate (data/save.php calls generateCacheForPost on a document save and generateCacheForGlobalSettings on a settings or selector save), so you need this only when the data changed outside those paths, or when the compiled files are simply stale. Run it after editing element trees or global settings directly, and whenever the front end does not match what the builder shows — a stale cache is the single most common cause of "the plugin update broke the site", because the compiled files can predate a plugin update and still carry its old default CSS. Pass post_ids to limit the run, omit it to do every builder post. Returns a verdict on the resulting files so you can confirm the compile actually produced output: a 0-byte post stylesheet means the run did not work for that post. Pass verbose to get the size of every file instead of the summary — on a site with 89 builder posts that listing is 178 entries and says nothing the summary does not.',
 		'category'         => 'bdox',
 		'input_schema'     => array(
 			'type'                 => 'object',
@@ -27,6 +27,10 @@ bdox_pack_ability(
 					'type'        => 'boolean',
 					'description' => 'Also recompile global-settings.css, selectors.css and variables.css. Default true.',
 				),
+				'verbose'         => array(
+					'type'        => 'boolean',
+					'description' => 'Return the size of every compiled CSS file instead of the summary. Default false.',
+				),
 			),
 			'additionalProperties' => false,
 		),
@@ -35,6 +39,7 @@ bdox_pack_ability(
 			'properties' => array(
 				'regenerated_posts' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ) ),
 				'global_settings'   => array( 'type' => 'boolean' ),
+				'css'               => array( 'type' => 'object' ),
 				'css_files'         => array( 'type' => 'object' ),
 			),
 		),
@@ -56,11 +61,17 @@ bdox_pack_ability(
 				\Breakdance\Render\generateCacheForGlobalSettings();
 			}
 
-			return array(
+			$out = array(
 				'regenerated_posts' => $done,
 				'global_settings'   => $do_global,
-				'css_files'         => bdox_pack_css_file_sizes(),
+				'css'               => bdox_pack_css_file_summary(),
 			);
+
+			if ( ! empty( $input['verbose'] ) ) {
+				$out['css_files'] = bdox_pack_css_file_sizes();
+			}
+
+			return $out;
 		},
 	)
 );

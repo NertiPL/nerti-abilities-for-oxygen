@@ -1,8 +1,10 @@
-# Unofficial Abilities for Breakdance Elements for Oxygen
+# Nerti Abilities for Oxygen
+
+Jedna wtyczka, jedna instalacja, komplet abilities dla agenta pracującego w Oxygenie. Grupy włączają się same, zależnie od tego, co zastaną na witrynie.
 
 MCP ability pack for **Oxygen 6.x + Breakdance Elements for Oxygen**, built on the WP Abilities API and Agent Connector for WP.
 
-**[Download the latest release →](https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements/releases/latest)**
+**[Download the latest release →](https://github.com/NertiPL/nerti-abilities-for-oxygen/releases/latest)**
 
 Install the `.zip` from the release page, not the green *Code → Download ZIP* button: that one names the folder `…-main`, so WordPress installs it under a different slug and the next update lands as a second copy instead of replacing the first.
 
@@ -150,7 +152,7 @@ The agent half is scaffolding, not product. At handover, in this order:
 5. `nerti-cookies` stays. It is the client's, not the agent's.
 
 
-Download the `.zip` from the [latest release](https://github.com/NertiPL/unofficial-abilities-for-breakdance-elements/releases/latest) and upload it under **Plugins → Add New → Upload Plugin**. Requires `agent-connector-for-wp` and `oxygen`.
+Download the `.zip` from the [latest release](https://github.com/NertiPL/nerti-abilities-for-oxygen/releases/latest) and upload it under **Plugins → Add New → Upload Plugin**. Requires `agent-connector-for-wp` and `oxygen`.
 
 An agent cannot install this for you: Agent Connector refuses to write `.php` outside its own sandbox, which is the correct behaviour and the one manual step in the whole workflow.
 

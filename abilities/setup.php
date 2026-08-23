@@ -13,19 +13,26 @@ bdox_pack_ability(
 	array(
 		'name'             => 'bdox/setup-report',
 		'label'            => 'Builder Setup Report',
-		'description'      => 'One call that answers "what state is this install actually in" before you change anything. Reports builder and element-plugin versions, registered breakpoints, which global-settings groups exist (containers, colors, palette, buttons, presets — a site missing these has its design system in CSS classes instead, which the client cannot edit), the compiled CSS file sizes, the typography as the browser actually resolves it, and a stale-cache verdict. Typography is read from the compiled global-settings.css on purpose: a Google Font slug drops every non-alphanumeric character rather than hyphenating it, so "gfont-bricolage-grotesque" is stored and emitted verbatim as the font-family while set-global-settings reports success — the verdict says unresolved_font_slug when that happened. typography.base_size has the same shape: only the flat form takes effect, so the stored value proves nothing and the compiled file does. The stale-cache check is the important one: it compares the ".breakdance " prefix count in the element plugin SOURCE against the compiled cache. Source 0 with compiled above 0 means the cache predates a plugin update and the site is rendering old default CSS — the fix is bdox/regenerate-css, not a CSS workaround or a plugin patch.',
+		'description'      => 'One call that answers "what state is this install actually in" before you change anything. Reports builder and element-plugin versions, registered breakpoints, which global-settings groups exist (containers, colors, palette, buttons, presets — a site missing these has its design system in CSS classes instead, which the client cannot edit), which ability groups this pack switched on and why (the WooCommerce map only appears on a store, the backup abilities only where UpdraftPlus is active — so a missing ability is a missing plugin, not a broken pack), a verdict on the compiled CSS files, the typography as the browser actually resolves it, and a stale-cache verdict. Typography is read from the compiled global-settings.css on purpose: a Google Font slug drops every non-alphanumeric character rather than hyphenating it, so "gfont-bricolage-grotesque" is stored and emitted verbatim as the font-family while set-global-settings reports success — the verdict says unresolved_font_slug when that happened. typography.base_size has the same shape: only the flat form takes effect, so the stored value proves nothing and the compiled file does. The stale-cache check is the important one: it compares the ".breakdance " prefix count in the element plugin SOURCE against the compiled cache. Source 0 with compiled above 0 means the cache predates a plugin update and the site is rendering old default CSS — the fix is bdox/regenerate-css, not a CSS workaround or a plugin patch.',
 		'category'         => 'bdox',
 		'input_schema'     => array(
 			'type'                 => 'object',
-			'properties'           => array(),
+			'properties'           => array(
+				'verbose' => array(
+					'type'        => 'boolean',
+					'description' => 'Also return the size of every compiled CSS file. Default false: a site with 89 builder posts has 178 of them and the listing says nothing the summary does not. Use it only when hunting a specific post stylesheet.',
+				),
+			),
 			'additionalProperties' => false,
 		),
 		'output_schema'    => array(
 			'type'       => 'object',
 			'properties' => array(
 				'versions'         => array( 'type' => 'object' ),
+				'ability_groups'   => array( 'type' => 'object' ),
 				'breakpoints'      => array( 'type' => 'array' ),
 				'global_settings'  => array( 'type' => 'object' ),
+				'css'              => array( 'type' => 'object' ),
 				'css_files'        => array( 'type' => 'object' ),
 				'stale_cache'      => array( 'type' => 'object' ),
 				'builder_posts'    => array( 'type' => 'integer' ),
@@ -123,11 +130,12 @@ bdox_pack_ability(
 				$breakpoints = \Breakdance\Config\Breakpoints\get_breakpoints();
 			}
 
-			return array(
+			$out = array(
 				'versions'        => $versions,
+				'ability_groups'  => bdox_pack_ability_groups(),
 				'breakpoints'     => $breakpoints,
 				'global_settings' => $global,
-				'css_files'       => bdox_pack_css_file_sizes(),
+				'css'             => bdox_pack_css_file_summary(),
 				'stale_cache'     => array(
 					'source_prefixed_defaults'   => $source_prefixed,
 					'compiled_prefixed_defaults' => $compiled_prefixed,
@@ -135,6 +143,12 @@ bdox_pack_ability(
 				),
 				'builder_posts'   => count( bdox_pack_builder_post_ids() ),
 			);
+
+			if ( ! empty( $input['verbose'] ) ) {
+				$out['css_files'] = bdox_pack_css_file_sizes();
+			}
+
+			return $out;
 		},
 	)
 );

@@ -301,3 +301,90 @@ function bdox_pack_ability( array $def ): void {
 
 	ACFW_Pack::ability( $def );
 }
+
+/**
+ * The compiled CSS files as a verdict rather than as a directory listing.
+ *
+ * bdox_pack_css_file_sizes() returns one entry per file, and a site with 89 builder
+ * posts has 178 of them — on the reference store that was ~6 kB of JSON in the answer
+ * to setup-report, a call an agent makes during every warm-up, and none of it said
+ * anything except "the files exist". What actually matters is the handful of global
+ * files and the anomalies: a 0-byte stylesheet is the signature of a compile that
+ * produced nothing.
+ *
+ * `presets.css` and `variables.css` are 0 bytes on a site that simply declares no
+ * button presets and no CSS variables, so they are reported separately from the
+ * files whose emptiness is a real symptom.
+ *
+ * @return array<string, mixed>
+ */
+function bdox_pack_css_file_summary(): array {
+	$sizes = bdox_pack_css_file_sizes();
+
+	$global = array();
+	foreach ( array( 'selectors.css', 'global-settings.css', 'elements.css', 'variables.css', 'presets.css' ) as $name ) {
+		if ( isset( $sizes[ $name ] ) ) {
+			$global[ $name ] = $sizes[ $name ];
+		}
+	}
+
+	$post_files = 0;
+	$empty      = array();
+	foreach ( $sizes as $name => $bytes ) {
+		if ( isset( $global[ $name ] ) ) {
+			continue;
+		}
+		++$post_files;
+		if ( 0 === $bytes ) {
+			$empty[] = $name;
+		}
+	}
+
+	return array(
+		'global'            => $global,
+		'post_files'        => $post_files,
+		'total_bytes'       => array_sum( $sizes ),
+		'empty_post_files'  => $empty,
+		'note'              => $empty
+			? 'A 0-byte post stylesheet means the compile produced nothing for that post — re-run bdox/regenerate-css with its post_ids and check the tree.'
+			: 'Every post stylesheet has content. Pass verbose:true for the full per-file listing.',
+	);
+}
+
+/**
+ * Which ability groups this install actually got, and what decided it.
+ *
+ * The pack registers by what it finds: the WooCommerce map only on a store, the
+ * backup abilities only where UpdraftPlus is active. That is the right behaviour and
+ * it is also invisible — an agent that cannot find bdox/woo-map has no way to tell a
+ * missing plugin from a broken pack. This says which it is.
+ *
+ * @return array<string, mixed>
+ */
+function bdox_pack_ability_groups(): array {
+	$woo    = class_exists( 'WooCommerce' );
+	$woo_el = class_exists( 'EssentialElements\\Wooproductprice' );
+	$updr   = class_exists( 'UpdraftPlus_Backup_History' );
+
+	return array(
+		'oxygen'     => array(
+			'active' => function_exists( 'Breakdance\\Data\\get_global_settings_array' ),
+			'gives'  => 'bdox/house-rules, design-map, element-visibility, element-defaults, setup-report, regenerate-css, get/patch-global-settings, audit-compiled-css, merge-css-selector, builder-hidden-elements, set-image, store-toolbox',
+			'needs'  => 'oxygen + breakdance-elements-for-oxygen',
+		),
+		'woocommerce' => array(
+			'active' => $woo && $woo_el,
+			'gives'  => 'bdox/woo-map',
+			'needs'  => 'woocommerce + breakdance-woocommerce-for-oxygen',
+			'why'    => $woo && $woo_el
+				? 'both present'
+				: ( $woo ? 'WooCommerce is active but the Breakdance WooCommerce elements are not registered' : 'WooCommerce is not active' ),
+		),
+		'backup'     => array(
+			'active' => $updr,
+			'gives'  => 'updraft/backup-now, updraft/list-backups',
+			'needs'  => 'updraftplus',
+			'why'    => $updr ? 'UpdraftPlus is active' : 'UpdraftPlus is not active — there is no way to promise a rollback point on this site',
+		),
+	);
+}

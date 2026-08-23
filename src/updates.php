@@ -15,7 +15,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-const BDOX_PACK_REPO         = 'NertiPL/unofficial-abilities-for-breakdance-elements';
+const BDOX_PACK_REPO         = 'NertiPL/nerti-abilities-for-oxygen';
 const BDOX_PACK_FAILED_LOOKUP = 'bdox_pack_release_lookup_failed';
 const BDOX_PACK_FAILURE_TTL   = 15 * MINUTE_IN_SECONDS;
 

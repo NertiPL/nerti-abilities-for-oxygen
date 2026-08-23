@@ -2,6 +2,26 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.14.0 — 2026-08-23
+
+Wydanie o jednym temacie: **żeby agent wiedział, gdzie co jest, i żeby płacił za to mniej tokenów.**
+
+### Changed — nazwa i repozytorium
+
+- Repozytorium nazywa się teraz **`nerti-abilities-for-oxygen`**, wtyczka tak samo, plik główny tak samo. Stara nazwa `unofficial-abilities-for-breakdance-elements` opisywała paczkę sprzed ośmiu wydań: dziś są w niej WooCommerce, kopie zapasowe i katalog wtyczek. GitHub trzyma przekierowanie ze starej nazwy, ale **slug katalogu wtyczki się zmienił**, więc na witrynie, gdzie stała poprzednia wersja, WordPress zobaczy nowy wpis: zainstaluj nową i usuń starą. Na Haberkornie zrobione.
+
+### Added — żeby nie trzeba było zgadywać
+
+- **`bdox/house-rules` rozdział 8: gdzie co siedzi w Essential Elements.** Tabela zmierzona na BEFO 1.1.0.beta.4, nie wymyślona. Dwie pułapki, na których przewraca się każdy, kto zgaduje: **padding Section siedzi w `design.spacing.padding`, a padding Div i Grid w `design.container.padding`** (marginesy natomiast u obu w `spacing`), oraz **kolor nagłówka nie schodzi kaskadą z rodzica**, bo ustawienia globalne przypisują go wprost do `h1`–`h6` — odpowiedzią jest `design.text_colors.headings` na Section albo Div, nie klasa CSS na wrapperze. Plus przyciski: `design.button.style` to `primary | secondary | custom | text`, a dwadzieścia przycisków ustawionych na `custom` to dwadzieścia miejsc do zmiany, kiedy klient poprosi o inny odcień.
+
+- **`bdox/design-map` z `groups_only: true`** — dwie–trzy linie na element zamiast wszystkich kontrolek, wiele slugów w jednym wołaniu. Najpierw dowiadujesz się, GDZIE kontrolka siedzi, potem dopiero pytasz o jej wnętrze.
+
+- **`bdox/setup-report` mówi, które grupy abilities się włączyły i dlaczego.** Paczka rejestruje się po tym, co zastanie — mapa WooCommerce tylko na sklepie, kopie zapasowe tylko przy UpdraftPlusie — i to jest słuszne, ale niewidoczne: agent, który nie znajduje `bdox/woo-map`, nie ma jak odróżnić braku wtyczki od zepsutej paczki. Teraz raport mówi wprost, które to i czego brakuje.
+
+### Changed — wydajność odpowiedzi
+
+- **`bdox/setup-report` i `bdox/regenerate-css` nie wysypują już listingu katalogu.** Witryna z 89 dokumentami buildera ma 178 skompilowanych plików CSS; na sklepie referencyjnym było to ~6 kB JSON-a w odpowiedzi na wywołanie, które agent robi przy każdej rozgrzewce, i nie mówiło niczego poza „pliki istnieją". Teraz wraca werdykt: pięć plików globalnych z rozmiarami, liczba plików postowych, suma bajtów i **lista pustych** — bo to zerobaštowy arkusz jest objawem, nie sama obecność plików. Pełny listing wraca pod `verbose: true`.
+
 ## 0.13.1 — 2026-08-23
 
 ### Fixed

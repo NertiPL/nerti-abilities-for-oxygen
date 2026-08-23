@@ -136,6 +136,41 @@ missing — plus the two that end a session: a security plugin whose firewall bl
 (the agent's only way in), and a page cache that serves the previous version of every page so a
 change that landed correctly reads as a change that failed. Page caching goes on at handover,
 after the last `bdox/regenerate-css`.
+
+## 8. Gdzie co siedzi w Essential Elements
+
+Zmierzone 2026-08-23 na BEFO 1.1.0.beta.4. Te ścieżki są powodem, dla którego agent pisze klasę
+CSS na coś, co element umie sam: nazwy nie są takie, jakie by się wymyśliło, a
+`get-element-schemas` odfiltrowany po zgadniętej nazwie zwraca pustkę wyglądającą jak dowód.
+
+| Czego chcesz | Section | Div / Grid | reszta |
+|---|---|---|---|
+| flex, grid, odstęp, wyrównanie | `design.layout_v2` | `design.layout_v2` (Grid: `design.grid`) | — |
+| padding | **`design.spacing.padding`** | **`design.container.padding`** | — |
+| margines zewnętrzny | `design.spacing.margin_top` / `_bottom` | `design.spacing.margin_top` / `_bottom` | tak samo, każdy element |
+| tło, gradient, obraz, wideo | `design.background` | `design.background` | — |
+| obramowanie, promień, cień | `design.borders` | **`design.container.borders`** | Image2: `design.borders` |
+| szerokość / wysokość | `design.size` (w tym `container_width`) | `design.container.width`, `min_height` | Text: `design.size.width`, Image2: `design.image` |
+| kolor nagłówków i tekstu w środku | `design.text_colors.headings` / `.text` / `.link` / `.brand` | `design.text_colors.*` | — |
+| typografia | — | — | Text: `design.typography` |
+
+Dwie rzeczy, na których się przewraca każdy, kto zgaduje:
+
+- **Padding Section i padding Div to inne gałęzie.** Section ma go w `spacing`, Div i Grid
+  w `container`. Marginesy natomiast siedzą w `spacing` u obu.
+- **Kolor nagłówka nie schodzi kaskadą z rodzica**, bo ustawienia globalne przypisują go
+  wprost do `h1`–`h6`. Odpowiedzią jest `design.text_colors.headings` na Section albo Div —
+  to jest właśnie ta kontrolka, nie klasa CSS na wrapperze.
+
+**Przyciski.** `design.button.style` przyjmuje `primary | secondary | custom | text`. Domyślnie
+`primary` albo `secondary`, a wygląd obu ustaw RAZ w ustawieniach globalnych (`buttons.primary`,
+`buttons.secondary`). `design.button.custom.*` (tło, obrys, kolor, promień, ikona, efekty) to
+jednorazowy wyjątek, nie sposób na stylowanie przycisków w serwisie — dwadzieścia przycisków
+ustawionych na `custom` to dwadzieścia miejsc do zmiany, kiedy klient poprosi o inny odcień.
+
+Nie zgaduj tej tabeli dla elementu, którego tu nie ma. `bdox/design-map` z `groups_only: true`
+przyjmuje wiele slugów naraz i daje dwie–trzy linie na element: najpierw dowiadujesz się, GDZIE
+kontrolka siedzi, potem dopiero pytasz o jej wnętrze.
 TXT;
 }
 
@@ -143,7 +178,7 @@ bdox_pack_ability(
 	array(
 		'name'             => 'bdox/house-rules',
 		'label'            => 'House Rules',
-		'description'      => 'The site owner\'s build rules for this Oxygen install, on top of oxygen/get-instructions. CALL THIS RIGHT AFTER oxygen/get-instructions, before the first build or edit, and again whenever a class is about to be created. It is short and it is the difference between a page whose styling the client can edit and a page that needs you back for every change. Covers: back up before touching a site you did not build; the Design tab before any CSS class, with the decision procedure and the selector budget this site actually runs on; the Design-tab control paths that are NOT named the way you would guess (design.layout_v2, design.container) and therefore look absent when you filter get-element-schemas by a guessed name; when to use Text versus RichText; four failure modes that look like broken JavaScript but are not (meta.classes taking ids not names, [hidden] losing to display, stale CSS before regenerate-css, elements hidden from MCP); the three levels a WooCommerce store is styled from, starting with the settings.woocommerce branch that themes the whole store in one write; and which plugins a store build needs versus the two that will cut the agent off mid-session.',
+		'description'      => 'The site owner\'s build rules for this Oxygen install, on top of oxygen/get-instructions. CALL THIS RIGHT AFTER oxygen/get-instructions, before the first build or edit, and again whenever a class is about to be created. It is short and it is the difference between a page whose styling the client can edit and a page that needs you back for every change. Covers: back up before touching a site you did not build; the Design tab before any CSS class, with the decision procedure and the selector budget this site actually runs on; the Design-tab control paths that are NOT named the way you would guess (design.layout_v2, design.container) and therefore look absent when you filter get-element-schemas by a guessed name; when to use Text versus RichText; four failure modes that look like broken JavaScript but are not (meta.classes taking ids not names, [hidden] losing to display, stale CSS before regenerate-css, elements hidden from MCP); the three levels a WooCommerce store is styled from, starting with the settings.woocommerce branch that themes the whole store in one write; which plugins a store build needs versus the two that will cut the agent off mid-session; and a measured table of WHERE each design control lives on Section, Div, Grid, Text, Image2 and Button — including the two that everyone gets wrong, padding sitting in a different branch on Section than on Div, and heading colour not cascading from a parent because global settings set it on the tag.',
 		'category'         => 'bdox',
 		/* Jedno pole, zeby dalo sie wyciagnac jeden rozdzial zamiast calosci. Puste
 		   wolanie tez dziala — default w input_schema podstawia bdox_pack_ability(). */
@@ -152,7 +187,7 @@ bdox_pack_ability(
 			'properties'           => array(
 				'section' => array(
 					'type'        => 'string',
-					'description' => 'Numer rozdzialu (0-7) albo "all". Domyslnie caly tekst.',
+					'description' => 'Numer rozdzialu (0-8) albo "all". Domyslnie caly tekst.',
 				),
 			),
 			'additionalProperties' => false,

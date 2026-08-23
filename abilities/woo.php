@@ -220,7 +220,7 @@ function bdox_pack_woo_rules(): array {
  * The check has to run on the Abilities API hook rather than while this file is
  * being included, and the reason is plugin load order: WordPress loads active
  * plugins in the order of the `active_plugins` option, where
- * `unofficial-abilities-...` sorts BEFORE `woocommerce`. At include time
+ * `nerti-abilities-for-oxygen` sorts BEFORE `woocommerce`. At include time
  * class_exists( 'WooCommerce' ) is therefore false on a site that plainly has
  * WooCommerce, the ability silently never registers, and the symptom is
  * "Ability 'bdox/woo-map' not found" on a working store. Measured 2026-08-23,

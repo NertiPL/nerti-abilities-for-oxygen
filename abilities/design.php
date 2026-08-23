@@ -147,7 +147,7 @@ bdox_pack_ability(
 	array(
 		'name'             => 'bdox/design-map',
 		'label'            => 'Design Tab Map',
-		'description'      => 'Compact map of every control an element exposes, one line per control, as "dotted.path => type". Use this INSTEAD of get-element-schemas whenever the question is "can I style this natively, and under which property path" - the full schema for one element runs 5-15k tokens and is mostly $defs and repeated breakpoint wrappers, which is why agents give up and reach for a CSS class for something the element already styles itself. Responsive controls collapse to one line marked "@breakpoint" (the five breakpoint keys are always the same). Filter with "prefix" to get just one tab, e.g. "design" or "design.typography". Read the result as: a path listed here can be written with edit-post and compiles to the element own generated CSS, so it needs no class and no selector; a path NOT listed means the element genuinely has no native control and a class is the honest answer. Read the paths verbatim: several are NOT named the way you would guess, and guessing is exactly how an agent concludes an element has no Design tab and reaches for a class instead. On EssentialElements\Div the flex/grid layout lives under design.layout_v2 (not design.layout), and padding, borders, radius and shadow live under design.container (not design.borders) - a get-element-schemas call filtered by the guessed names returns empty and looks like proof that the controls do not exist.',
+		'description'      => 'Compact map of every control an element exposes, one line per control, as "dotted.path => type". Use this INSTEAD of get-element-schemas whenever the question is "can I style this natively, and under which property path" - the full schema for one element runs 5-15k tokens and is mostly $defs and repeated breakpoint wrappers, which is why agents give up and reach for a CSS class for something the element already styles itself. Responsive controls collapse to one line marked "@breakpoint" (the five breakpoint keys are always the same). Filter with "prefix" to get just one tab, e.g. "design" or "design.typography". Pass "groups_only" to get two or three lines per element instead of every control, which is how you survey twenty elements in one call and find out WHERE a control lives before asking WHAT is in it. Read the result as: a path listed here can be written with edit-post and compiles to the element own generated CSS, so it needs no class and no selector; a path NOT listed means the element genuinely has no native control and a class is the honest answer. Read the paths verbatim: several are NOT named the way you would guess, and guessing is exactly how an agent concludes an element has no Design tab and reaches for a class instead. On EssentialElements\Div the flex/grid layout lives under design.layout_v2 (not design.layout), and padding, borders, radius and shadow live under design.container (not design.borders) - a get-element-schemas call filtered by the guessed names returns empty and looks like proof that the controls do not exist.',
 		'category'         => 'bdox',
 		'input_schema'     => array(
 			'type'                 => 'object',
@@ -160,6 +160,10 @@ bdox_pack_ability(
 				'prefix' => array(
 					'type'        => 'string',
 					'description' => 'Only return paths starting with this, e.g. "design" or "design.typography". Empty returns everything.',
+				),
+				'groups_only' => array(
+					'type'        => 'boolean',
+					'description' => 'Return only the top-level groups of each tab (design.layout_v2, design.container, ...) instead of every control. Two or three lines per element, so you can ask about twenty elements in one call and find out WHERE a thing lives before asking WHAT is in it. Start here when you do not yet know which element owns the control you need.',
 				),
 				'expand' => array(
 					'type'        => 'boolean',
@@ -192,6 +196,7 @@ bdox_pack_ability(
 
 			$prefix   = isset( $input['prefix'] ) ? (string) $input['prefix'] : '';
 			$expand   = ! empty( $input['expand'] );
+			$grupy    = ! empty( $input['groups_only'] );
 			$elementy = array();
 			$brakuje  = array();
 
@@ -223,6 +228,22 @@ bdox_pack_ability(
 				}
 
 				ksort( $plaski );
+
+				if ( $grupy ) {
+					/* Collapse to "tab.group" and count what is inside, so the answer says
+					   where a control lives without listing every control. */
+					$zwiniete = array();
+					foreach ( $plaski as $sciezka => $typ ) {
+						$czesci = explode( '.', $sciezka );
+						$klucz  = count( $czesci ) > 1 ? $czesci[0] . '.' . $czesci[1] : $czesci[0];
+						$zwiniete[ $klucz ] = ( $zwiniete[ $klucz ] ?? 0 ) + 1;
+					}
+					$plaski = array();
+					foreach ( $zwiniete as $klucz => $ile ) {
+						$plaski[ $klucz ] = $ile . ' controls';
+					}
+				}
+
 				$elementy[ $slug ] = $plaski;
 			}
 

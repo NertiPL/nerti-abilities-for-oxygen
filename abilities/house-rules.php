@@ -42,9 +42,13 @@ A selector is the last resort, not the starting point. Three reasons, in order o
    so it outranks classes without fighting them, and it travels with the element when the
    section is copied to another page.
 3. A class only pays for itself on repetition. One place -> Design tab. The same look in
-   many places -> one shared class.
+   many places -> Global Settings and typography/button presets. Shared content -> one Component with instances; expose local overrides explicitly. A class is only for a measured missing native control.
 
 Procedure, every time:
+
+    tokens -> Global Settings -> presets -> Essential Elements Design -> shared Components
+    Native Animations / Interactions come before custom JS. Read schemas including hover.
+    Two pages must demonstrate source propagation AND an isolated instance override.
 
     bdox/design-map { slugs: [...], prefix: "design" }   <- can the element do this itself?
       it can        -> oxygen/edit-post, properties.design.*
@@ -92,8 +96,8 @@ element with a level, so RichText's `<p>` wrapper disqualifies it there.
     the browser rule for `[hidden]` is a plain attribute selector. Hiding an element from
     script: set `style="display:none"` in the element's attributes and clear it in JS, or
     add an explicit `.klasa[hidden] { display: none }` rule.
-  - After `oxygen/edit-post` or any selector change, run `bdox/regenerate-css`. Until then
-    the front end serves the previous stylesheet and the change looks like it failed.
+  - Native save paths compile CSS. Read back and render first; use `bdox/regenerate-css`
+    only after direct data patches or when compiled CSS is demonstrably stale.
 
 ## 5. Build first, hide last
 

@@ -299,6 +299,7 @@ function bdox_pack_ability( array $def ): void {
 		$def['input_schema']['default'] = array();
 	}
 
+	$def['description'] .= ' Scope and input: use the declared schema and live site versions. Permissions and audit: Agent Connector. Read-only calls do not mutate; before any write capture the prior state/backup. After a write read back and render; API success alone is not a test. Reverse using the prior state or verified backup; do not retry an uncertain write automatically. Shared build standard: bdox/house-rules.';
 	ACFW_Pack::ability( $def );
 }
 

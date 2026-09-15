@@ -114,7 +114,7 @@ function bdox_pack_override_rules(): array {
 			'source'      => 'EssentialElements\\WrapperLink',
 			'declaration' => 'display: flex; flex-direction: column; align-items: flex-start; text-decoration: none; transition-property: background-color, border-color, box-shadow, color',
 			'breaks'      => 'Same flex-column trap as Div, plus a 300ms transition on colours that fights a shorter transition set in a class.',
-			'fix'         => 'Same as Div. Declare the full transition shorthand in the class — that is the reliable route. Do NOT try to set --defaultTransition through insert-stylesheet: measured 2026-07-27 on Oxygen 6.2.0-beta.2 and again 2026-08-21 on 6.2.0-beta.5, the CSS importer lowercases custom property NAMES, so it stores --defaulttransition and var(--defaultTransition) never resolves. The import reports success, which is what makes it expensive. If you must set a camelCase custom property, write it through bdox/merge-css-selector into the custom_css slot, which bypasses the importer and preserves case.',
+			'fix'         => 'Use Global Settings transition duration, then the element Design controls. Regression on try.local 2026-09-14 (Oxygen beta.8 + Connector 1.30.0): insert-stylesheet preserves --probeCamelCase, var(), gradient, !important and registered breakpoint values in saved and computed CSS. Do not apply the obsolete lowercase-name workaround; remeasure after updates.',
 			'must'        => true,
 		),
 		array(

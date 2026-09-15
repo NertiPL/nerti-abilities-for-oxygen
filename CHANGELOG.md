@@ -2,6 +2,24 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.16.1 — 2026-09-15
+
+### Zmienione
+
+- **House rules §9: przyciski zdejmują podkreślenie tylko w stanie normal.** Poprzednie zdanie („`.button-atom--*` ustawiają `text-decoration: none`”) było prawdziwe wyłącznie dla normal. Gdy `typography.advanced.links` podkreśla odnośniki po najechaniu, `a:hover` (0,1,1) bije `.button-atom--primary` (0,1,0) i każdy Button jest podkreślony po hover. Zmierzone na try.local, Oxygen 6.2.0-beta.8, `front-kontrola.mjs`: 6 naruszeń na dwóch stronach demo. Schemat presetu ma `decoration.line` tylko dla normal, więc reguła opisuje teraz dwa kroki: dekoracja w presecie i jeden nazwany arkusz zawężony do wariantów z tłem i obrysem, razem z widocznym focus-visible (domyślny `outline: auto 3px currentColor` bez odsunięcia był niewidoczny) i listą przejść zamiast `all`. Po zmianie: zero naruszeń §12a dla przycisków Essential Elements, computed style sprawdzony w normal, hover, focus-visible i active.
+- **House rules §10 (nowy): zero zewnętrznych hostów przed zgodą na cookies.** Google Fonts przez Custom Fonts z własnym arkuszem (`hasExternalCssUrl`), bo generator `@font-face` Oxygena nie zna `unicode-range`; pułapka `write_file_to_bucket()` → `sanitize_file_name()`, która spłaszcza podkatalog w nazwie pliku i daje 404 z cichym spadkiem na Arial. GSAP z unpkg.com przez filtr `breakdance_reusable_dependencies_urls`. Zmierzone tego samego dnia: fonty platformowe identyczne przed i po (CDP `CSS.getPlatformFontsForNode`), GSAP 3.15.0 lokalnie w jednym egzemplarzu, zero hostów zewnętrznych.
+
+## 0.16.0 — 2026-09-14
+
+Wydane na try.local 14.09, zacommitowane 15.09 (`b493096`); wpis dopisany osobno.
+
+### Zmienione
+
+- **`bdox/element-defaults`, WrapperLink: stara poprawka nazw zmiennych CSS wycofana.** Regresja na Oxygen 6.2.0-beta.8 z Agent Connector 1.30.0 pokazała, że `insert-stylesheet` zachowuje wielkość liter w `--probeCamelCase`, a także `var()`, gradient, `!important` i wartości per zarejestrowany breakpoint, w zapisie i w computed style. Zamiast obejścia przez `custom_css` zalecenie brzmi: czas przejścia z ustawień globalnych, potem kontrolki Design elementu; zmierzyć ponownie po aktualizacji.
+- **House rules §1: presety i komponenty przed klasami.** Ten sam wygląd w wielu miejscach to ustawienia globalne i presety typografii oraz przycisków, wspólna treść to komponent z instancjami i jawnie wystawionymi nadpisaniami. Klasa tylko dla zmierzonego braku natywnej kontrolki. Natywne Animations/Interactions przed własnym JS; dwie strony muszą pokazać propagację źródła i odizolowane nadpisanie instancji.
+- **House rules §4: regeneracja CSS nie po każdym zapisie.** Natywne ścieżki zapisu kompilują CSS same; najpierw odczyt i render, `bdox/regenerate-css` dopiero po bezpośredniej łatce danych albo przy dowodzie nieaktualnego pliku.
+- **Opis każdej ability** kończy się zasadą pracy: zakres i wejście ze schematu i żywych wersji, uprawnienia i audyt po stronie Agent Connector, stan sprzed zapisu albo backup, po zapisie odczyt i render, bez automatycznych ponowień niepewnego zapisu.
+
 ## 0.15.1 — 2026-08-23
 
 ### Fixed

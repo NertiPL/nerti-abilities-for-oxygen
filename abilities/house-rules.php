@@ -191,9 +191,23 @@ Zmierzone 2026-08-23 na tej instalacji:
 | kolor przycisku | zestaw `--bde-button-*` z ustawień globalnych, razem z hoverem, obrysem i przejściem | `buttons.primary` / `buttons.secondary` w ustawieniach globalnych, raz dla całej witryny |
 | interlinia | Breakdance nie dziedziczy jej — zostawia własną, dopóki nie ustawisz jej wprost. Zaobserwowane przy przenoszeniu Laborii: menu i stopka wychodziły o ~3 px wyższe niż w projekcie | ustaw `lineHeight` jawnie w typografii elementu albo w presecie typografii |
 
-Przyciski są tu wyjątkiem potwierdzającym regułę: `.button-atom--primary/secondary/custom`
-**ustawiają** `text-decoration: none`. Dlatego odnośnik „ostylowany na przycisk" ręcznie zawsze
-wygląda inaczej niż prawdziwy Button — bo prawdziwy ma zdjęte podkreślenie, a twój nie.
+Przyciski zdejmują podkreślenie **tylko w stanie normal**: `.button-atom--primary/secondary/custom`
+ustawiają `text-decoration: none` przy (0,1,0). Dlatego odnośnik „ostylowany na przycisk" ręcznie
+wygląda inaczej niż prawdziwy Button. Ale jeśli `typography.advanced.links` podkreśla odnośniki
+po najechaniu, `a:hover` (0,1,1) wygrywa i **każdy Button jest podkreślony po hover** — zmierzone
+2026-09-15 na Oxygen 6.2.0-beta.8. Preset przycisku ma `decoration.line` wyłącznie dla normal,
+kontrolki dekoracji hover nie ma. Poprawka w tej kolejności:
+
+1. `buttons.primary.typography.typography.custom.customTypography.advanced.decoration.line`
+   = `{"breakpoint_base": ["none"]}` (i tak samo secondary), żeby stan normal był wpisany jawnie;
+2. JEDEN nazwany arkusz w `code.stylesheets`, nigdy per element, zawężony do wariantów z tłem
+   i obrysem, żeby `.button-atom--text` zachował podkreślenie odnośnika:
+   `.button-atom:is(.button-atom--primary, .button-atom--secondary, .button-atom--custom):is(:hover, :focus-visible, :active) { text-decoration-line: none }`.
+
+Przy okazji dwie domyślne, które też trzeba nadpisać tym samym arkuszem: focus-visible to
+`outline: auto 3px currentColor` bez odsunięcia (biały na białym tle, czyli niewidoczny) oraz
+`transition-property: all`. Sprawdzaj computed style na froncie w stanach normal, hover,
+focus-visible i active, nie w kanwie buildera.
 
 `bdox/element-defaults` wypisuje pełną listę takich domyślnych razem ze specyficznością
 i poprawką, która przeżyje aktualizację wtyczki. Wołaj ją, zanim zaczniesz walczyć z CSS-em,
@@ -213,6 +227,25 @@ którego nie napisałeś.
 - **`insert-stylesheet` ZASTĘPUJE właściwości selektora, nie dokleja.** Import reguły z jedną
   deklaracją kasuje wszystkie pozostałe w tym breakpoincie. Do zmiany istniejącej klasy jest
   `bdox/merge-css-selector`, który scala per breakpoint.
+
+## 10. Zero zewnętrznych hostów przed zgodą na cookies
+
+Dwa źródła Oxygen dokłada sam, zanim odwiedzający cokolwiek kliknie. Zmierzone 2026-09-15
+na Oxygen 6.2.0-beta.8.
+
+- **Google Fonts.** Font wybrany jako `gfont-*` ładuje się z `fonts.googleapis.com` i
+  `fonts.gstatic.com`. Lokalnie: Custom Fonts w `preferences.customFonts` i przełączenie
+  `typography.heading_font` / `body_font` na id tej rodziny. Generator `@font-face` Oxygena
+  NIE zna `unicode-range`, więc podzbiory Google (latin, latin-ext) nadpisałyby się nawzajem —
+  zarejestruj rodzinę z `hasExternalCssUrl: true` i własnym arkuszem w `uploads`. Nazwy plików
+  bez podkatalogów: `write_file_to_bucket()` przepuszcza nazwę przez `sanitize_file_name()`,
+  `dm-sans/plik.css` zapisuje się jako `dm-sansplik.css`, a front dostaje 404 i cicho spada
+  na Arial. Dowód: `CSS.getPlatformFontsForNode` (CDP) przed i po, nie sama nazwa w `font-family`.
+- **GSAP z unpkg.com.** Animacje wejścia, przewijania i sticky biorą
+  `%%BREAKDANCE_REUSABLE_GSAP%%` z `getReusableDependenciesUrls()`, a ta przepuszcza adresy
+  przez filtr `breakdance_reusable_dependencies_urls` (także `oxygen_…`). Ustawienia w panelu
+  nie ma; filtr w mu-pluginie i pliki w `uploads`, bez zmian w samym Oxygenie. Po zmianie
+  sprawdź na froncie `gsap.version`, jeden egzemplarz i postęp ScrollTriggera po przewinięciu.
 TXT;
 }
 

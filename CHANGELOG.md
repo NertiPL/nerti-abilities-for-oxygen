@@ -2,6 +2,11 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.17.0 — 2026-09-16
+
+### Dodane
+
+- **`nerti/set-seo` i `nerti/get-seo`: tytuł dokumentu i meta description bez wtyczki SEO.** Zmierzone na demie „Po godzinach”: przeniesienie 1:1 było „zgodne” element po elemencie, a WordPress oddawał `<title>try</title>` i zero meta description, bo Oxygen nie ma pola na żadne z nich, a `design-diff` porównywał tylko pudełka. Paczka trzyma oba pola w meta posta (`_nerti_seo_tytul`, `_nerti_seo_opis`) i wypisuje je przez `pre_get_document_title` (priorytet 20) i `wp_head` (priorytet 1). Gdy na witrynie stoi Yoast, Rank Math, SEOPress albo AIOSEO, haki milczą — wartości zostają zapisane, ale głowę dokumentu pisze tamta wtyczka. Pusty ciąg czyści pole. Zasada pracy w opisie ability: po zapisie odczyt frontu, nie założenie.
 ## 0.16.1 — 2026-09-15
 
 ### Zmienione

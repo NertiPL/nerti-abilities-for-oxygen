@@ -2,6 +2,12 @@
 
 Versioning is [semver](https://semver.org/). While the pack is `0.x`, a minor bump may change an ability's output shape; patch bumps never do.
 
+## 0.18.0 — 2026-10-17
+
+### Dodane
+
+- **`bdox/element-values`: wszystkie wartości Design każdego elementu jednej strony (spłaszczone ścieżki) i flagi ryzyk.** `design-colour-on-stateful` (kolor z Design na elemencie, który CSS zmienia w stanie: hover, aria-selected/expanded/current, .is-*, [open]; reguła Design ma tę samą specyficzność i ładuje się później, więc zamraża stan z chwili pomiaru — zakładki DISC na biznesoweadhd.pl zostawały „zaznaczone”), `colour-copies-ancestor` (ten sam kolor co przodek: zbędny i blokuje dziedziczenie koloru na hover — „Zajrzyj do środka” biały na białym), `image-from-url`, `not-essential`; `type_defaults` wypisuje deklaracje domyślnego CSS typów Essential Elements, które ruszają kolor, podkreślenie albo hover. Do odpalenia przed i po każdym kroku przenosin.
+
 ## 0.17.0 — 2026-09-16
 
 ### Dodane
